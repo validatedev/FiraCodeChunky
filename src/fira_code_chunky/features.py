@@ -81,6 +81,9 @@ def ensure_opentype_categories(font: ufoLib2.Font) -> dict[str, str]:
     _restore_spacing_overrides(font, categories)
     if categories:
         font.lib["public.openTypeCategories"] = categories
+    else:
+        # A stale map left in lib would still reach ufo2ft; drop it.
+        font.lib.pop("public.openTypeCategories", None)
     return categories
 
 

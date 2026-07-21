@@ -111,6 +111,14 @@ def test_ensure_opentype_categories_empty_font_is_noop():
     assert "public.openTypeCategories" not in font.lib
 
 
+def test_ensure_opentype_categories_drops_stale_lib_map():
+    font = ufoLib2.Font()
+    font.info.unitsPerEm = 1000
+    font.lib["public.openTypeCategories"] = {"strokeshortoverlay": "mark"}
+    assert ensure_opentype_categories(font) == {}
+    assert "public.openTypeCategories" not in font.lib
+
+
 _ORIGINAL_WIDTH_KEY = "com.schriftgestaltung.Glyphs.originalWidth"
 
 
