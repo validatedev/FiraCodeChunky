@@ -1,9 +1,12 @@
 import shutil
+import subprocess as _subprocess
 from pathlib import Path
 
 import pytest
 import ufoLib2
 from fontTools.designspaceLib import DesignSpaceDocument
+
+from fira_code_chunky.runner import RunnerError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "micro"
 
@@ -28,3 +31,21 @@ def micro_masters(micro_dir):
         ufoLib2.Font.open(micro_dir / "MicroLight.ufo"),
         ufoLib2.Font.open(micro_dir / "MicroBold.ufo"),
     )
+
+
+class FakeRunner:
+    def __init__(self):
+        self.calls: list[list[str]] = []
+        self.fail_on: set[str] = set()
+
+    def run(self, argv, cwd=None):
+        argv = list(argv)
+        self.calls.append(argv)
+        if argv[0] in self.fail_on:
+            raise RunnerError(f"{argv!r} failed (1): fake failure")
+        return _subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+
+@pytest.fixture
+def fake_runner():
+    return FakeRunner()
