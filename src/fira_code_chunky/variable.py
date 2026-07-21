@@ -24,6 +24,7 @@ from fontTools.ttLib import TTFont
 
 from fira_code_chunky import FAMILY_NAME, VF_DESIGN_LOCATION_KEY, WEIGHT_CLASSES
 from fira_code_chunky.metadata import WIN
+from fira_code_chunky.qa import QAError
 
 AXIS_NAME = "Weight"
 
@@ -77,7 +78,12 @@ def finalize_vf(path: Path) -> None:
     """Assert the fvar axis, pin the family name, and leave the VF unhinted."""
     with TTFont(path) as font:
         axis = font["fvar"].axes[0]
-        assert (axis.minValue, axis.defaultValue, axis.maxValue) == (300, 400, 700)
+        got = (axis.minValue, axis.defaultValue, axis.maxValue)
+        if got != (300, 400, 700):
+            # A bare `assert` here would be stripped under python -O and
+            # would raise plain AssertionError, which run_build's except
+            # tuple does not catch (Fix 3).
+            raise QAError(f"fvar (min, default, max) {got} != (300, 400, 700)")
         name = font["name"]
         for name_id in (1, 16):
             if name.getName(name_id, *WIN) is not None:

@@ -111,6 +111,37 @@ def test_assert_static_metadata_catches_macstyle(micro_ttf):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
+def test_assert_static_metadata_catches_missing_copyright(micro_ttf):
+    # Fix 1 regression gate: name ID 0 (copyright) is exactly what the
+    # extrapolated Bold used to ship without.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].removeNames(nameID=0)
+    with pytest.raises(qa.QAError, match="name 0"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_missing_license(micro_ttf):
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].removeNames(nameID=13)
+    with pytest.raises(qa.QAError, match="name 13"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_missing_license_url(micro_ttf):
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].removeNames(nameID=14)
+    with pytest.raises(qa.QAError, match="name 14"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_empty_copyright(micro_ttf):
+    # Blank-but-present records must also fail, not just absent ones.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].setName("", 0, *metadata.WIN)
+    with pytest.raises(qa.QAError, match="name 0"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
 def test_stem_width_raises_without_ink(micro_ttf):
     # y=5000 is far above the "I" glyph, so the band intersects no ink.
     with pytest.raises(qa.QAError, match="no ink"):

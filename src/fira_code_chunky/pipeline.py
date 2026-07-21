@@ -260,7 +260,14 @@ def run_build(root: Path, runner: Runner) -> int:
         build_woff2(ttf_paths, paths.dist_woff2)
         vf_path = build_variable(paths, runner, flags)
         build_woff2([vf_path], paths.dist_woff2)
-    except (GateError, QAError, RunnerError) as error:
+    except (
+        GateError,
+        QAError,
+        RunnerError,
+        # Extrapolation input failure (e.g. incompatible masters) is a
+        # build-input problem, not a bug -> clean exit 1 like the others.
+        extrapolate.IncompatibleMastersError,
+    ) as error:
         logging.getLogger(__name__).error("build failed: %s", error)
         return 1
     return 0

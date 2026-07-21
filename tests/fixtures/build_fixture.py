@@ -27,6 +27,17 @@ def build_master(style, params):
     info.familyName, info.styleName = "Micro Fira", style
     info.unitsPerEm, info.ascender, info.descender = 1000, 800, -200
     info.capHeight, info.xHeight = 700, 500
+    # OFL metadata: identical across masters, mirroring how upstream Fira
+    # Code carries these fields on every master UFO. Exercises Fix 1
+    # (extrapolate._copy_info must propagate them to the synthetic Bold).
+    info.copyright = "Copyright 2014-2021 The Micro Fira Project Authors"
+    info.trademark = "Micro Fira is a trademark of the Micro Fira Project Authors."
+    info.openTypeNameLicense = (
+        "This Font Software is licensed under the SIL Open Font License, Version 1.1."
+    )
+    info.openTypeNameLicenseURL = "http://scripts.sil.org/OFL"
+    info.openTypeOS2VendorID = "MICR"
+    info.versionMajor, info.versionMinor = 6, 2
 
     g = font.newGlyph(".notdef")
     g.width = 600

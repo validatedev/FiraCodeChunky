@@ -59,6 +59,12 @@ def assert_static_metadata(
             problems.append(f"name {nid}: {actual!r} != {expected!r}")
     if ribbi and (_name(font, 16) is not None or _name(font, 17) is not None):
         problems.append("RIBBI style must not carry name 16/17")
+    # OFL compliance (Fix 1 regression gate): copyright, license text, and
+    # license URL must be present and non-empty on every static, including
+    # the hand-extrapolated Bold, which used to ship without them.
+    for nid in (0, 13, 14):
+        if not _name(font, nid):
+            problems.append(f"name {nid}: missing or empty")
     want_bold = style == "Bold"
     if bool(os2.fsSelection & FS_BOLD) != want_bold:
         problems.append("fsSelection BOLD bit wrong")

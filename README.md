@@ -14,7 +14,6 @@ FiraCode, but every weight is one notch chunkier. Standard weight metadata
 
 ## Build
 
-    brew install ttfautohint
     uv sync
     ./scripts/fetch.sh          # FiraCode @ 6.2, hash-pinned
     uv run chunky-build         # dist/: ttf, otf, woff2, variable

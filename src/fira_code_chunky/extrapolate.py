@@ -93,10 +93,29 @@ def extrapolate_font(light: ufoLib2.Font, bold: ufoLib2.Font, t: float) -> ufoLi
     return out
 
 
+# OFL-required and identity records that live on font.info rather than being
+# recomputed per-instance. The synthetic Bold has no upstream instance of its
+# own, so these must be lifted verbatim from the light master (Fix 1).
+_OFL_INFO_ATTRS = (
+    "copyright",
+    "trademark",
+    "openTypeNameLicense",
+    "openTypeNameLicenseURL",
+    "versionMajor",
+    "versionMinor",
+    "openTypeNameVersion",
+    "openTypeOS2VendorID",
+)
+
+
 def _copy_info(src: ufoLib2.Font, dst: ufoLib2.Font) -> None:
     dst.info.familyName = src.info.familyName
     dst.info.styleName = src.info.styleName
     dst.info.unitsPerEm = src.info.unitsPerEm
+    for attr in _OFL_INFO_ATTRS:
+        value = getattr(src.info, attr)
+        if value is not None:
+            setattr(dst.info, attr, value)
 
 
 def stem_widths_monotonic(widths: Sequence[float]) -> bool:

@@ -12,6 +12,7 @@ dependencies = [
     "ufoLib2>=0.17",
     "skia-pathops>=0.8",
     "uharfbuzz>=0.45",
+    "ttfautohint-py>=0.6.1",
 ]
 
 [project.scripts]

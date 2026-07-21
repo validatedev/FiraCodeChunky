@@ -526,6 +526,7 @@ dependencies = [
     { name = "gftools" },
     { name = "glyphslib" },
     { name = "skia-pathops" },
+    { name = "ttfautohint-py" },
     { name = "ufolib2" },
     { name = "uharfbuzz" },
 ]
@@ -546,6 +547,7 @@ requires-dist = [
     { name = "gftools", specifier = ">=0.9.75" },
     { name = "glyphslib", specifier = ">=6.9" },
     { name = "skia-pathops", specifier = ">=0.8" },
+    { name = "ttfautohint-py", specifier = ">=0.6.1" },
     { name = "ufolib2", specifier = ">=0.17" },
     { name = "uharfbuzz", specifier = ">=0.45" },
 ]

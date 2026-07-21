@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+import pytest
 from fontTools.designspaceLib import AxisDescriptor
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -8,6 +9,7 @@ from fontTools.ttLib import TTFont
 from fira_code_chunky import FAMILY_NAME, pipeline, variable
 from fira_code_chunky.metadata import WIN
 from fira_code_chunky.patch import make_chunky
+from fira_code_chunky.qa import QAError
 
 
 def test_vf_designspace_structure(micro_ds, tmp_path):
@@ -39,7 +41,7 @@ def test_vf_designspace_structure(micro_ds, tmp_path):
     assert (tmp_path / "vf.designspace").exists()
 
 
-def _synthetic_vf(path, *, family, with_typographic):
+def _synthetic_vf(path, *, family, with_typographic, axis_range=(300, 400, 700)):
     fb = FontBuilder(unitsPerEm=1000, isTTF=True)
     fb.setupGlyphOrder([".notdef"])
     fb.setupCharacterMap({})
@@ -52,8 +54,9 @@ def _synthetic_vf(path, *, family, with_typographic):
         fb.font["name"].setName(family, 16, *WIN)
     fb.setupOS2()
     fb.setupPost()
+    minv, defv, maxv = axis_range
     fb.setupFvar(
-        axes=[("wght", 300, 400, 700, "Weight")],
+        axes=[("wght", minv, defv, maxv, "Weight")],
         instances=[],
     )
     fb.font.save(path)
@@ -73,6 +76,21 @@ def test_finalize_vf_pins_family_and_leaves_unhinted(tmp_path):
     assert cast(Any, font["name"]).getName(1, *WIN).toUnicode() == FAMILY_NAME
     assert cast(Any, font["name"]).getName(16, *WIN).toUnicode() == FAMILY_NAME
     assert cast(Any, font["maxp"]).maxSizeOfInstructions == 0
+
+
+def test_finalize_vf_raises_qa_error_on_wrong_fvar_range(tmp_path):
+    # Fix 3: the fvar (300,400,700) invariant must raise qa.QAError, not a
+    # bare AssertionError that -O would strip and that run_build's except
+    # tuple doesn't catch.
+    path = _synthetic_vf(
+        tmp_path / "vf.ttf",
+        family="Placeholder",
+        with_typographic=True,
+        axis_range=(300, 400, 900),
+    )
+
+    with pytest.raises(QAError, match="fvar"):
+        variable.finalize_vf(path)
 
 
 def test_finalize_vf_without_typographic_name(tmp_path):

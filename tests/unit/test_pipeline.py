@@ -453,7 +453,17 @@ def test_run_build_returns_1_on_runner_failure(tmp_path, fake_runner, caplog):
     assert "build failed" in caplog.text
 
 
-@pytest.mark.parametrize("error", [gates.GateError("gate"), QAError("qa")])
+@pytest.mark.parametrize(
+    "error",
+    [
+        gates.GateError("gate"),
+        QAError("qa"),
+        # Fix 2: a build-input failure (e.g. incompatible masters) must exit
+        # cleanly (1) like the other validation errors, not propagate as an
+        # uncaught exception.
+        pipeline.extrapolate.IncompatibleMastersError("glyph sets differ"),
+    ],
+)
 def test_run_build_returns_1_on_validation_failure(
     tmp_path, fake_runner, monkeypatch, error
 ):

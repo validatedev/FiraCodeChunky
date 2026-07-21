@@ -100,6 +100,27 @@ def test_fontinfo_none_attr_is_skipped(micro_masters):
     assert font.info.ascender is not None
 
 
+def test_extrapolated_font_copies_ofl_metadata(micro_masters):
+    # Fix 1 (OFL compliance): the extrapolated Bold must carry the same
+    # copyright/license/version/vendor records as the other statics, which
+    # all derive from the light master. Regression for the metadata loss
+    # that left the Bold binary without name IDs 0/13/14.
+    light, bold = micro_masters
+    assert light.info.copyright  # sanity: fixture actually carries the field
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.info.copyright == light.info.copyright
+    assert font.info.trademark == light.info.trademark
+    assert font.info.openTypeNameLicense == light.info.openTypeNameLicense
+    assert font.info.openTypeNameLicenseURL == light.info.openTypeNameLicenseURL
+    assert font.info.versionMajor == light.info.versionMajor
+    assert font.info.versionMinor == light.info.versionMinor
+    assert font.info.openTypeOS2VendorID == light.info.openTypeOS2VendorID
+    # openTypeNameVersion is unset on the fixture -> must stay unset, not
+    # crash, exercising the "copy only when present" guard.
+    assert light.info.openTypeNameVersion is None
+    assert font.info.openTypeNameVersion is None
+
+
 def test_stem_monotonic_guard():
     assert stem_widths_monotonic([50, 70, 120, 130])
     assert not stem_widths_monotonic([50, 70, 120, 119])
