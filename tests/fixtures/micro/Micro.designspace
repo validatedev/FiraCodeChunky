@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<designspace format="5.0">
+  <axes>
+    <axis tag="wght" name="Weight" minimum="300" maximum="700" default="300"/>
+  </axes>
+  <sources>
+    <source filename="MicroLight.ufo" familyname="Micro Fira" stylename="Light">
+      <location>
+        <dimension name="Weight" xvalue="300"/>
+      </location>
+    </source>
+    <source filename="MicroBold.ufo" familyname="Micro Fira" stylename="Bold">
+      <location>
+        <dimension name="Weight" xvalue="700"/>
+      </location>
+    </source>
+  </sources>
+  <instances>
+    <instance familyname="Micro Fira" stylename="Light">
+      <location>
+        <dimension name="Weight" xvalue="300"/>
+      </location>
+    </instance>
+    <instance familyname="Micro Fira" stylename="Regular">
+      <location>
+        <dimension name="Weight" xvalue="400"/>
+      </location>
+    </instance>
+    <instance familyname="Micro Fira" stylename="Retina">
+      <location>
+        <dimension name="Weight" xvalue="450"/>
+      </location>
+    </instance>
+    <instance familyname="Micro Fira" stylename="Medium">
+      <location>
+        <dimension name="Weight" xvalue="500"/>
+      </location>
+    </instance>
+    <instance familyname="Micro Fira" stylename="SemiBold">
+      <location>
+        <dimension name="Weight" xvalue="600"/>
+      </location>
+    </instance>
+    <instance familyname="Micro Fira" stylename="Bold">
+      <location>
+        <dimension name="Weight" xvalue="700"/>
+      </location>
+    </instance>
+  </instances>
+</designspace>

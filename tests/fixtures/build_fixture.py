@@ -1,0 +1,122 @@
+"""Generate the committed micro fixture. Run once: uv run python tests/fixtures/build_fixture.py"""
+
+from pathlib import Path
+
+import ufoLib2
+from fontTools.designspaceLib import (
+    AxisDescriptor,
+    DesignSpaceDocument,
+    InstanceDescriptor,
+    SourceDescriptor,
+)
+
+HERE = Path(__file__).parent / "micro"
+
+
+def rect(pen, x0, y0, x1, y1):
+    pen.moveTo((x0, y0))
+    pen.lineTo((x1, y0))
+    pen.lineTo((x1, y1))
+    pen.lineTo((x0, y1))
+    pen.closePath()
+
+
+def build_master(style, params):
+    font = ufoLib2.Font()
+    info = font.info
+    info.familyName, info.styleName = "Micro Fira", style
+    info.unitsPerEm, info.ascender, info.descender = 1000, 800, -200
+    info.capHeight, info.xHeight = 700, 500
+
+    g = font.newGlyph(".notdef")
+    g.width = 600
+    rect(g.getPen(), 50, 0, 550, 700)
+
+    g = font.newGlyph("I")
+    g.width = 600
+    rect(g.getPen(), params["i_left"], 0, params["i_right"], 700)
+    g.appendAnchor({"name": "top", "x": 300, "y": params["i_top_y"]})
+
+    g = font.newGlyph("O")
+    g.width = 600
+    o = params["o_outer"]
+    i = params["o_inner"]
+    rect(g.getPen(), o[0], o[1], o[2], o[3])
+    rect(g.getPen(), i[0], i[1], i[2], i[3])
+
+    g = font.newGlyph("acutecomb")
+    g.width = 0
+    a = params["acute"]
+    rect(g.getPen(), a[0], a[1], a[2], a[3])
+    g.appendAnchor({"name": "_top", "x": 300, "y": a[1]})
+
+    g = font.newGlyph("Iacute")
+    g.width = 600
+    pen = g.getPen()
+    pen.addComponent("I", (1, 0, 0, 1, 0, 0))
+    pen.addComponent("acutecomb", (1, 0, 0, 1, 0, params["acute_dy"]))
+
+    font.kerning[("I", "O")] = params["kern"]
+    return font
+
+
+LIGHT = {
+    "i_left": 280,
+    "i_right": 320,
+    "i_top_y": 700,
+    "o_outer": (100, 0, 500, 700),
+    "o_inner": (180, 80, 420, 620),
+    "acute": (280, 520, 320, 640),
+    "acute_dy": 180,
+    "kern": -8,
+}
+BOLD = {
+    "i_left": 240,
+    "i_right": 360,
+    "i_top_y": 720,
+    "o_outer": (60, 0, 540, 700),
+    "o_inner": (200, 120, 400, 580),
+    "acute": (260, 540, 340, 700),
+    "acute_dy": 200,
+    "kern": -40,
+}
+
+
+def main() -> None:
+    HERE.mkdir(parents=True, exist_ok=True)
+    build_master("Light", LIGHT).save(HERE / "MicroLight.ufo", overwrite=True)
+    build_master("Bold", BOLD).save(HERE / "MicroBold.ufo", overwrite=True)
+
+    ds = DesignSpaceDocument()
+    axis = AxisDescriptor(
+        tag="wght", name="Weight", minimum=300, default=300, maximum=700
+    )
+    ds.addAxis(axis)
+    for filename, style, loc in [
+        ("MicroLight.ufo", "Light", 300),
+        ("MicroBold.ufo", "Bold", 700),
+    ]:
+        src = SourceDescriptor(
+            filename=filename,
+            styleName=style,
+            familyName="Micro Fira",
+            location={"Weight": loc},
+        )
+        ds.addSource(src)
+    for style, loc in [
+        ("Light", 300),
+        ("Regular", 400),
+        ("Retina", 450),
+        ("Medium", 500),
+        ("SemiBold", 600),
+        ("Bold", 700),
+    ]:
+        inst = InstanceDescriptor(
+            familyName="Micro Fira", styleName=style, location={"Weight": loc}
+        )
+        ds.addInstance(inst)
+    ds.write(HERE / "Micro.designspace")
+
+
+if __name__ == "__main__":
+    main()
