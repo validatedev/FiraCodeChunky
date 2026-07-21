@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,14 +16,17 @@ from fontTools.ttLib import TTFont
 from fira_code_chunky import (
     DESIGN_SHIFT,
     FAMILY_NAME,
+    VF_DESIGN_LOCATION_KEY,
     WEIGHT_CLASSES,
     bake,
     commands,
     extrapolate,
+    features,
     gates,
     metadata,
     patch,
     qa,
+    variable,
 )
 from fira_code_chunky.gates import GateError
 from fira_code_chunky.qa import QAError
@@ -48,6 +52,10 @@ class Paths:
         return self.master_dir / "FiraCodeChunky.designspace"
 
     @property
+    def vf_designspace(self) -> Path:
+        return self.master_dir / "FiraCodeChunkyVF.designspace"
+
+    @property
     def instance_dir(self) -> Path:
         return self.root / "build/instance_ufo"
 
@@ -64,8 +72,8 @@ class Paths:
         return self.root / "dist/woff2"
 
     @property
-    def dist_vf(self) -> Path:
-        return self.root / "dist/vf"
+    def dist_variable(self) -> Path:
+        return self.root / "dist/variable"
 
 
 def _build_script_text(ds_path: Path) -> str:
@@ -87,11 +95,14 @@ def convert_upstream(paths: Paths, runner: Runner) -> Path:
 
 
 def prepare_designspace(ds_path: Path) -> DesignSpaceDocument:
-    """Load, validate, and patch an upstream designspace in memory."""
+    """Load, validate, patch, and sanitize an upstream designspace in memory."""
     ds = DesignSpaceDocument.fromfile(ds_path)
     ds.loadSourceFonts(ufoLib2.Font.open)
     gates.gate_report(ds, _build_script_text(ds_path))
     patch.make_chunky(ds)
+    for source in ds.sources:
+        font = cast(ufoLib2.Font, source.font)
+        font.features.text = features.sanitize_features(font.features.text or "")
     return ds
 
 
@@ -100,13 +111,14 @@ def bake_all(ds: DesignSpaceDocument) -> list[tuple[str, ufoLib2.Font]]:
     if any(instance.styleName == "Retina" for instance in ds.instances):
         patch.make_chunky(ds)
 
+    name = patch.axis_name(ds)
     baked: list[tuple[str, ufoLib2.Font]] = []
     for instance, font in bake.bake_interior_instances(ds):
         style = cast(str, instance.styleName)
         bake.apply_instance_metadata(font, instance, WEIGHT_CLASSES[style])
+        font.lib[VF_DESIGN_LOCATION_KEY] = instance.location[name]
         baked.append((style, font))
 
-    name = patch.axis_name(ds)
     sources = sorted(ds.sources, key=lambda source: source.location[name])
     light_source, bold_source = sources[0], sources[-1]
     light_location = light_source.location[name]
@@ -127,6 +139,7 @@ def bake_all(ds: DesignSpaceDocument) -> list[tuple[str, ufoLib2.Font]]:
     bake.apply_instance_metadata(
         bold_font, bold_instance, WEIGHT_CLASSES["Bold"]
     )
+    bold_font.lib[VF_DESIGN_LOCATION_KEY] = target
     baked.append(("Bold", bold_font))
     return baked
 
@@ -142,9 +155,17 @@ def _binary_paths(paths: Paths, style: str) -> tuple[Path, Path, Path, Path]:
 
 
 def compile_commands(
-    paths: Paths, styles: Sequence[str], flags: Sequence[str]
+    paths: Paths,
+    styles: Sequence[str],
+    flags: Sequence[str],
+    otf_hint: bool = True,
 ) -> list[list[str]]:
-    """Build the argv sequence for static compilation and post-processing."""
+    """Build the argv sequence for static compilation and post-processing.
+
+    ``otf_hint`` gates the CFF autohint pass: the ``otfautohint`` CLI is not in
+    the pinned toolchain (no afdko/psautohint), so it is skipped when absent,
+    yielding unhinted OTFs while TTFs still get ttfautohint.
+    """
     argv: list[list[str]] = []
     for style in styles:
         ufo, raw_ttf, ttf, otf = _binary_paths(paths, style)
@@ -155,7 +176,12 @@ def compile_commands(
                 ),
                 commands.fontmake_ufo_command(ufo, "otf", paths.dist_otf, flags),
                 commands.ttfautohint_command(raw_ttf, ttf),
-                commands.otfautohint_command(otf),
+            ]
+        )
+        if otf_hint:
+            argv.append(commands.otfautohint_command(otf))
+        argv.extend(
+            [
                 commands.gftools_fix_command(ttf),
                 commands.gftools_fix_command(otf),
             ]
@@ -178,7 +204,8 @@ def build_statics(
     for directory in (paths.instance_dir, paths.dist_ttf, paths.dist_otf):
         directory.mkdir(parents=True, exist_ok=True)
     styles = list(WEIGHT_CLASSES)
-    for argv in compile_commands(paths, styles, flags):
+    otf_hint = shutil.which("otfautohint") is not None
+    for argv in compile_commands(paths, styles, flags, otf_hint):
         runner.run(argv)
     ttf_paths: list[Path] = []
     for style in styles:
@@ -202,6 +229,32 @@ def build_woff2(ttf_paths: Sequence[Path], out_dir: Path) -> list[Path]:
     return outputs
 
 
+def _place_vf(out_dir: Path) -> Path:
+    """Normalize fontmake's VF output name to ``FiraCodeChunky-VF.ttf``."""
+    target = out_dir / "FiraCodeChunky-VF.ttf"
+    produced = [path for path in out_dir.glob("*.ttf") if path != target]
+    if produced:
+        produced[0].replace(target)
+    return target
+
+
+def build_variable(
+    paths: Paths, runner: Runner, flags: Sequence[str]
+) -> Path:
+    """Assemble the VF designspace, compile it, add STAT, and finalize it."""
+    paths.dist_variable.mkdir(parents=True, exist_ok=True)
+    variable.build_vf_designspace(paths.instance_dir, paths.vf_designspace)
+    runner.run(
+        commands.fontmake_variable_command(
+            paths.vf_designspace, paths.dist_variable, flags
+        )
+    )
+    vf = _place_vf(paths.dist_variable)
+    runner.run(commands.gftools_fix_command(vf))
+    variable.finalize_vf(vf)
+    return vf
+
+
 def run_build(root: Path, runner: Runner) -> int:
     """Run the complete static build, returning a process-style exit code."""
     paths = Paths(root)
@@ -215,6 +268,8 @@ def run_build(root: Path, runner: Runner) -> int:
         flags = gates.extract_fontmake_flags(_build_script_text(ds_path))
         ttf_paths = build_statics(paths, runner, flags)
         build_woff2(ttf_paths, paths.dist_woff2)
+        vf_path = build_variable(paths, runner, flags)
+        build_woff2([vf_path], paths.dist_woff2)
     except (GateError, QAError, RunnerError) as error:
         logging.getLogger(__name__).error("build failed: %s", error)
         return 1

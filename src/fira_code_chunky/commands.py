@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -51,7 +52,10 @@ def fontmake_variable_command(
 
 
 def ttfautohint_command(src: Path, dest: Path) -> list[str]:
-    return ["ttfautohint", "--no-info", str(src), str(dest)]
+    # ttfautohint ships no standalone CLI here; ttfautohint-py bundles the real
+    # binary and exposes it as ``python -m ttfautohint`` (a locked dependency,
+    # so always present under the project interpreter).
+    return [sys.executable, "-m", "ttfautohint", "--no-info", str(src), str(dest)]
 
 
 def otfautohint_command(otf: Path) -> list[str]:

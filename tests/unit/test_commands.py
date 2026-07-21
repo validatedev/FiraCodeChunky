@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -47,7 +48,14 @@ def test_fontmake_variable():
 
 
 def test_ttfautohint_and_otfautohint_and_gftools():
-    assert c.ttfautohint_command(Path("a.ttf"), Path("b.ttf"))[0] == "ttfautohint"
+    assert c.ttfautohint_command(Path("a.ttf"), Path("b.ttf")) == [
+        sys.executable,
+        "-m",
+        "ttfautohint",
+        "--no-info",
+        "a.ttf",
+        "b.ttf",
+    ]
     assert c.otfautohint_command(Path("a.otf"))[0] == "otfautohint"
     assert c.gftools_fix_command(Path("a.ttf")) == [
         "gftools",
