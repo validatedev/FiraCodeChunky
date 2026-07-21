@@ -1,0 +1,62 @@
+"""Pure argv builders for the font toolchain."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from pathlib import Path
+
+
+def glyphs2ufo_command(glyphs: Path, master_dir: Path, designspace: Path) -> list[str]:
+    return [
+        "glyphs2ufo",
+        str(glyphs),
+        "-m",
+        str(master_dir),
+        "--designspace-path",
+        str(designspace),
+        "--write-public-skip-export-glyphs",
+    ]
+
+
+def fontmake_ufo_command(
+    ufo: Path, fmt: str, out_dir: Path, extra_flags: Sequence[str] = ()
+) -> list[str]:
+    if fmt not in {"ttf", "otf"}:
+        raise ValueError(f"unsupported format: {fmt!r}")
+    return [
+        "fontmake",
+        "-u",
+        str(ufo),
+        "-o",
+        fmt,
+        "--output-dir",
+        str(out_dir),
+        *extra_flags,
+    ]
+
+
+def fontmake_variable_command(
+    designspace: Path, out_dir: Path, extra_flags: Sequence[str] = ()
+) -> list[str]:
+    return [
+        "fontmake",
+        "-m",
+        str(designspace),
+        "-o",
+        "variable",
+        "--output-dir",
+        str(out_dir),
+        *extra_flags,
+    ]
+
+
+def ttfautohint_command(src: Path, dest: Path) -> list[str]:
+    return ["ttfautohint", "--no-info", str(src), str(dest)]
+
+
+def otfautohint_command(otf: Path) -> list[str]:
+    return ["otfautohint", "--overwrite", str(otf)]
+
+
+def gftools_fix_command(font: Path) -> list[str]:
+    return ["gftools", "fix-font", "-o", str(font), str(font)]
