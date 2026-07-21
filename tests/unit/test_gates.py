@@ -97,3 +97,8 @@ def test_gate_report_returns_all_informational_results(micro_ds):
             "DecomposeTransformedComponentsFilter",
         ],
     }
+
+
+def test_extract_fontmake_flags_falls_back_on_unbalanced_quotes():
+    text = 'fontmake -g F.glyphs -o ttf --flatten-components "unbalanced\n'
+    assert extract_fontmake_flags(text) == ["--flatten-components", '"unbalanced']
