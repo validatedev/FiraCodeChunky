@@ -2,7 +2,9 @@
 
 fontTools' VariationModel defaults to extrapolate=False and varLib.instancer
 cannot exceed the fvar range, so the 750 master is baked with explicit linear
-math: value = light + t * (bold - light), t = 1.125.
+math: value = light + t * (bold - light), with t computed from the master
+design locations (109/96 on the real upstream axis map; 1.125 on the linear
+micro fixture).
 """
 
 from __future__ import annotations

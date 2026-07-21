@@ -175,7 +175,7 @@ def test_at_sign_overflow_bounded():
     Our Bold is not an upstream master: it is linearly extrapolated past
     upstream's own Bold master (design 158, t=1) out to design 171
     (t = 109/96 ≈ 1.135), per ``extrapolate.py``'s
-    ``value = light + t * (bold - value)`` point-by-point model. For most
+    ``value = light + t * (bold - light)`` point-by-point model. For most
     glyphs this stays inside the advance width; '@' is the one coding-Latin
     glyph whose extremal points cross the cell boundary between the Light and
     Bold masters, so extrapolating further pushes them out further still.
