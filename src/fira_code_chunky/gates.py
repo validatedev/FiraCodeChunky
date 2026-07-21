@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shlex
+from itertools import pairwise
 
 from fontTools.designspaceLib import DesignSpaceDocument
 
@@ -21,6 +22,36 @@ FONTMAKE_OPTIONS_WITH_OPTIONAL_VALUES = {"-i", "--interpolate"}
 
 class GateError(RuntimeError):
     """Raised when an upstream assumption makes the build unsafe."""
+
+
+def _weight_axis_map(ds: DesignSpaceDocument) -> list[tuple[float, float]]:
+    for axis in ds.axes:
+        if axis.tag == "wght":
+            return list(axis.map)
+    return []
+
+
+def _validate_weight_axis_map(ds: DesignSpaceDocument) -> list[tuple[float, float]]:
+    map_ = _weight_axis_map(ds)
+    if not map_:
+        return map_
+    if len(map_) < 2:
+        raise GateError("wght axis map must contain at least 2 entries")
+    if any(right[0] <= left[0] for left, right in pairwise(map_)):
+        raise GateError("wght axis map user coordinates must be strictly increasing")
+    if any(right[1] <= left[1] for left, right in pairwise(map_)):
+        raise GateError("wght axis map design coordinates must be strictly increasing")
+
+    axis_name = next(axis.name for axis in ds.axes if axis.tag == "wght")
+    design_min, design_max = map_[0][1], map_[-1][1]
+    for source in ds.sources:
+        location = source.location.get(axis_name)
+        if location is not None and not design_min <= location <= design_max:
+            raise GateError(
+                f"master location {location} is outside mapped design range "
+                f"{design_min}..{design_max}"
+            )
+    return map_
 
 
 def weight_class_key_present(ds: DesignSpaceDocument) -> bool:
@@ -72,13 +103,13 @@ def extract_fontmake_flags(build_script_text: str) -> list[str]:
 
 
 def gate_report(ds: DesignSpaceDocument, build_script_text: str) -> dict[str, object]:
-    """Return upstream gate results, stopping if any axis has a map."""
+    """Return upstream gate results after validating any weight-axis map."""
     axis_linear = axis_is_linear(ds)
-    if not axis_linear:
-        raise GateError("designspace axes must be linear; found an axis map")
+    axis_map = _validate_weight_axis_map(ds)
 
     return {
         "weight_class_key": weight_class_key_present(ds),
         "axis_linear": axis_linear,
+        "axis_map": axis_map,
         "fontmake_flags": extract_fontmake_flags(build_script_text),
     }
