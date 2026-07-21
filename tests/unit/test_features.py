@@ -108,3 +108,54 @@ def test_ensure_opentype_categories_empty_font_is_noop():
     font.info.unitsPerEm = 1000
     assert ensure_opentype_categories(font) == {}
     assert "public.openTypeCategories" not in font.lib
+
+
+_ORIGINAL_WIDTH_KEY = "com.schriftgestaltung.Glyphs.originalWidth"
+
+
+def _spacing_overlay_ufo() -> ufoLib2.Font:
+    """UFO with the U+0335 overlay (a spacing override) + a true combining mark.
+
+    Both are glyphsLib-classified as marks with a zeroed advance; only the
+    overlay must be un-marked and re-spaced (F1). ``commaaccent`` (U+0326, the
+    non-.case comma-below) is a genuine mark that must stay a mark.
+    """
+    font = ufoLib2.Font()
+    font.info.unitsPerEm = 1000
+    font.info.familyName = "Test"
+    font.info.styleName = "Regular"
+    overlay = font.newGlyph("strokeshortoverlay")
+    overlay.unicodes = [0x0335]
+    overlay.width = 0
+    overlay.lib[_ORIGINAL_WIDTH_KEY] = 1200
+    comb = font.newGlyph("commaaccent")
+    comb.unicodes = [0x0326]
+    comb.width = 0
+    comb.lib[_ORIGINAL_WIDTH_KEY] = 1200
+    return font
+
+
+def test_spacing_overlay_is_unmarked_and_respaced():
+    font = _spacing_overlay_ufo()
+
+    categories = ensure_opentype_categories(font)
+
+    # Overlay: dropped from categories (GDEF-unclassified) and re-spaced to 1200.
+    assert "strokeshortoverlay" not in categories
+    assert font["strokeshortoverlay"].width == 1200
+    # True combining comma-below stays a zero-advance mark.
+    assert categories.get("commaaccent") == "mark"
+    assert font["commaaccent"].width == 0
+
+
+def test_spacing_overlay_without_original_width_keeps_advance():
+    # The width-restore branch is guarded: a spacing override glyph lacking the
+    # originalWidth key is still un-marked but its advance is left untouched.
+    font = _spacing_overlay_ufo()
+    del font["strokeshortoverlay"].lib[_ORIGINAL_WIDTH_KEY]
+    font["strokeshortoverlay"].width = 0
+
+    categories = ensure_opentype_categories(font)
+
+    assert "strokeshortoverlay" not in categories
+    assert font["strokeshortoverlay"].width == 0

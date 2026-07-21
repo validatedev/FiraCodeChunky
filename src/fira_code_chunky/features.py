@@ -35,6 +35,20 @@ if TYPE_CHECKING:
 _CV_BLOCK = re.compile(r"feature\s+(cv\d\d)\s*\{.*?\}\s*\1\s*;", re.DOTALL)
 _FEATURE_NAMES = re.compile(r"featureNames\s*\{(.*?)\}\s*;", re.DOTALL)
 
+# Glyphs stores a zeroed advance + this lib key for combining marks; the value
+# is the intended spacing width (1200 in Fira Code).
+_ORIGINAL_WIDTH_KEY = "com.schriftgestaltung.Glyphs.originalWidth"
+
+# Glyphs that upstream Fira Code 6.002 ships as SPACING (advance 1200, GDEF
+# unclassified, absent from GPOS mark coverage) even though glyphsLib classifies
+# them as marks and the Glyphs->UFO conversion zeroes their advance. Verified
+# against the official FiraCode-Regular.ttf binary: strokeshortoverlay (U+0335),
+# strokelongoverlay (U+0336) and commaaccent.case (production name uni0326.case,
+# reached via ccmp after capitals). True combining marks (gravecomb, commaaccent
+# non-.case, dotaccentcomb, ...) are deliberately EXCLUDED and keep advance 0 /
+# GDEF mark class, matching upstream (F1/F2).
+_SPACING_OVERRIDES = ("strokeshortoverlay", "strokelongoverlay", "commaaccent.case")
+
 
 def _wrap_names(match: re.Match[str]) -> str:
     return f"cvParameters {{\nFeatUILabelNameID {{{match.group(1)}}};\n}};"
@@ -62,6 +76,23 @@ def ensure_opentype_categories(font: ufoLib2.Font) -> dict[str, str]:
     from glyphsLib.builder.features import _build_public_opentype_categories
 
     categories = _build_public_opentype_categories(font)
+    _restore_spacing_overrides(font, categories)
     if categories:
         font.lib["public.openTypeCategories"] = categories
     return categories
+
+
+def _restore_spacing_overrides(font: ufoLib2.Font, categories: dict[str, str]) -> None:
+    """Un-mark the spacing overlays and restore their 1200 advance (F1/F2).
+
+    Mutates ``categories`` in place: drops the override glyphs so ufo2ft leaves
+    them GDEF-unclassified, and resets each glyph's advance from its stored
+    ``originalWidth`` so HarfBuzz stops collapsing them onto the previous base.
+    """
+    for name in _SPACING_OVERRIDES:
+        if name not in font:
+            continue
+        original = font[name].lib.get(_ORIGINAL_WIDTH_KEY)
+        if original:
+            font[name].width = original
+        categories.pop(name, None)
