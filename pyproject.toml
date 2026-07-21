@@ -1,0 +1,64 @@
+[project]
+name = "fira-code-chunky"
+version = "0.1.0"
+description = "FiraCode derivative: standard weight metadata, +50 design (Regular = Retina)"
+requires-python = ">=3.12"
+license = "OFL-1.1"
+dependencies = [
+    "fontmake>=3.10",
+    "glyphsLib>=6.9",
+    "gftools>=0.9.75",
+    "fonttools[woff,ufo,lxml,unicode]>=4.58",
+    "ufoLib2>=0.17",
+    "skia-pathops>=0.8",
+    "uharfbuzz>=0.45",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.15.22",
+    "ty==0.0.61",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "pre-commit>=4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fira_code_chunky"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = ["E501"]
+unfixable = ["B"]
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires build/upstream (real FiraCode); skipped when absent"]
+addopts = "--cov=fira_code_chunky --cov-branch --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["fira_code_chunky"]
+
+[tool.coverage.paths]
+source = ["src/fira_code_chunky", "*/site-packages/fira_code_chunky"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "@overload",
+    "@(abc\\.)?abstractmethod",
+]
