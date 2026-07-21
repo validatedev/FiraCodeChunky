@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -35,7 +36,23 @@ def test_real_conversion_and_gates(tmp_path):
         script.read_text() for script in sorted((UPSTREAM / "script").glob("*.sh"))
     )
     report = gates.gate_report(ds, text)
-    assert report["axis_linear"] is True  # HARD requirement for the whole VF plan
+    # Upstream's wght axis is piecewise, not linear; gate_report carries the
+    # user->design map through instead of raising.
+    assert report["axis_linear"] is False
+    assert report["axis_map"] == [
+        (300.0, 62.0),
+        (400.0, 84.0),
+        (450.0, 96.0),
+        (500.0, 112.0),
+        (600.0, 132.0),
+        (700.0, 158.0),
+    ]
     styles = [i.styleName for i in ds.instances]
     assert "Retina" in styles
     assert "Regular" in styles
+
+    build_dir = Path("build")
+    build_dir.mkdir(exist_ok=True)
+    with (build_dir / "gate_report.json").open("w") as f:
+        # json serializes tuples (e.g. axis_map entries) as arrays natively.
+        json.dump(report, f, indent=2)
