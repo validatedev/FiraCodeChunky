@@ -1,3 +1,6 @@
+import contextlib
+import io
+import logging
 import shutil
 import subprocess as _subprocess
 from pathlib import Path
@@ -9,6 +12,55 @@ from fontTools.designspaceLib import DesignSpaceDocument
 from fira_code_chunky.runner import RunnerError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "micro"
+
+
+def _compile_micro(tmp_path_factory, output):
+    from fontmake.font_project import FontProject
+
+    out = tmp_path_factory.mktemp(f"compiled-{output}")
+    previous_logging_level = logging.root.manager.disable
+    try:
+        logging.disable(logging.CRITICAL)
+        with (
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            FontProject().run_from_ufos(
+                [str(FIXTURES / "MicroLight.ufo")],
+                output=(output,),
+                output_dir=str(out),
+            )
+    finally:
+        logging.disable(previous_logging_level)
+    return next(out.glob(f"*.{output}"))
+
+
+@pytest.fixture(scope="session")
+def micro_ttf_path(tmp_path_factory):
+    return _compile_micro(tmp_path_factory, "ttf")
+
+
+@pytest.fixture
+def micro_ttf(micro_ttf_path, tmp_path):
+    from fontTools.ttLib import TTFont
+
+    path = tmp_path / micro_ttf_path.name
+    shutil.copy(micro_ttf_path, path)
+    return TTFont(path)
+
+
+@pytest.fixture(scope="session")
+def micro_otf_path(tmp_path_factory):
+    return _compile_micro(tmp_path_factory, "otf")
+
+
+@pytest.fixture
+def micro_otf(micro_otf_path, tmp_path):
+    from fontTools.ttLib import TTFont
+
+    path = tmp_path / micro_otf_path.name
+    shutil.copy(micro_otf_path, path)
+    return TTFont(path)
 
 
 @pytest.fixture
