@@ -64,6 +64,9 @@ def test_names_non_ribbi_medium(micro_ttf, tmp_path):
     assert name(font, 2) == "Regular"
     assert name(font, 16) == "Fira Code Chunky"
     assert name(font, 17) == "Medium"
+    assert name(font, 4) == "Fira Code Chunky Medium"
+    assert name(font, 6) == "FiraCodeChunky-Medium"
+    assert name(font, 3) is not None
 
 
 def test_pin_all(micro_ttf, tmp_path):
@@ -71,6 +74,9 @@ def test_pin_all(micro_ttf, tmp_path):
     font = reopened(micro_ttf, tmp_path)
     assert font["OS/2"].usWeightClass == 600
     assert name(font, 17) == "SemiBold"
+    assert font["OS/2"].fsSelection & (1 << 6)
+    assert not font["OS/2"].fsSelection & (1 << 5)
+    assert font["head"].macStyle & 1 == 0
 
 
 def test_rename_cff_noop_on_ttf(micro_ttf, tmp_path):
