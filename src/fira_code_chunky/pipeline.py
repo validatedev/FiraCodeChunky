@@ -124,9 +124,7 @@ def bake_all(ds: DesignSpaceDocument) -> list[tuple[str, ufoLib2.Font]]:
     light_location = light_source.location[name]
     bold_location = bold_source.location[name]
     axis_map = next(axis.map for axis in ds.axes if axis.tag == "wght")
-    target = patch.piecewise_design(
-        axis_map, WEIGHT_CLASSES["Bold"] + DESIGN_SHIFT
-    )
+    target = patch.piecewise_design(axis_map, WEIGHT_CLASSES["Bold"] + DESIGN_SHIFT)
     t = (target - light_location) / (bold_location - light_location)
     bold_font = extrapolate.extrapolate_font(
         cast(ufoLib2.Font, light_source.font),
@@ -136,9 +134,7 @@ def bake_all(ds: DesignSpaceDocument) -> list[tuple[str, ufoLib2.Font]]:
     bold_instance = next(
         instance for instance in ds.instances if instance.styleName == "Bold"
     )
-    bake.apply_instance_metadata(
-        bold_font, bold_instance, WEIGHT_CLASSES["Bold"]
-    )
+    bake.apply_instance_metadata(bold_font, bold_instance, WEIGHT_CLASSES["Bold"])
     bold_font.lib[VF_DESIGN_LOCATION_KEY] = target
     baked.append(("Bold", bold_font))
     return baked
@@ -171,9 +167,7 @@ def compile_commands(
         ufo, raw_ttf, ttf, otf = _binary_paths(paths, style)
         argv.extend(
             [
-                commands.fontmake_ufo_command(
-                    ufo, "ttf", paths.instance_dir, flags
-                ),
+                commands.fontmake_ufo_command(ufo, "ttf", paths.instance_dir, flags),
                 commands.fontmake_ufo_command(ufo, "otf", paths.dist_otf, flags),
                 commands.ttfautohint_command(raw_ttf, ttf),
             ]
@@ -197,9 +191,7 @@ def finalize_binary(path: Path, style: str) -> None:
         font.save(path)
 
 
-def build_statics(
-    paths: Paths, runner: Runner, flags: Sequence[str]
-) -> list[Path]:
+def build_statics(paths: Paths, runner: Runner, flags: Sequence[str]) -> list[Path]:
     """Compile, hint, fix, and finalize all five static styles."""
     for directory in (paths.instance_dir, paths.dist_ttf, paths.dist_otf):
         directory.mkdir(parents=True, exist_ok=True)
@@ -238,9 +230,7 @@ def _place_vf(out_dir: Path) -> Path:
     return target
 
 
-def build_variable(
-    paths: Paths, runner: Runner, flags: Sequence[str]
-) -> Path:
+def build_variable(paths: Paths, runner: Runner, flags: Sequence[str]) -> Path:
     """Assemble the VF designspace, compile it, add STAT, and finalize it."""
     paths.dist_variable.mkdir(parents=True, exist_ok=True)
     variable.build_vf_designspace(paths.instance_dir, paths.vf_designspace)

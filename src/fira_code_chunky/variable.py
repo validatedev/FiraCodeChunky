@@ -40,9 +40,7 @@ def _read_baked(instance_dir: Path) -> list[tuple[int, float, Path, str]]:
     return sorted(entries)
 
 
-def build_vf_designspace(
-    instance_dir: Path, out_path: Path
-) -> DesignSpaceDocument:
+def build_vf_designspace(instance_dir: Path, out_path: Path) -> DesignSpaceDocument:
     """Build a 3-master VF designspace whose avar map carries the weight curve."""
     entries = _read_baked(instance_dir)
     users = [user for user, *_ in entries]

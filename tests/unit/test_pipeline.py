@@ -111,9 +111,7 @@ def test_bake_all_five_styles(micro_ds):
     assert xs == [235, 365]
 
 
-def test_bake_all_uses_mapped_target_and_actual_master_locations(
-    micro_ds, monkeypatch
-):
+def test_bake_all_uses_mapped_target_and_actual_master_locations(micro_ds, monkeypatch):
     axis = micro_ds.axes[0]
     axis.minimum = 300
     axis.maximum = 700
@@ -123,9 +121,7 @@ def test_bake_all_uses_mapped_target_and_actual_master_locations(
     for source, location in zip(micro_ds.sources, source_locations, strict=True):
         source.location["Weight"] = location
     instance_locations = [62, 84, 96, 112, 132, 158]
-    for instance, location in zip(
-        micro_ds.instances, instance_locations, strict=True
-    ):
+    for instance, location in zip(micro_ds.instances, instance_locations, strict=True):
         instance.location["Weight"] = location
     seen_t = []
     real_extrapolate = pipeline.extrapolate.extrapolate_font
@@ -134,9 +130,7 @@ def test_bake_all_uses_mapped_target_and_actual_master_locations(
         seen_t.append(t)
         return real_extrapolate(light, bold, t)
 
-    monkeypatch.setattr(
-        pipeline.extrapolate, "extrapolate_font", capture_extrapolate
-    )
+    monkeypatch.setattr(pipeline.extrapolate, "extrapolate_font", capture_extrapolate)
     pipeline.patch.make_chunky(micro_ds)
 
     baked = pipeline.bake_all(micro_ds)
@@ -155,9 +149,7 @@ def test_bake_all_uses_mapped_target_and_actual_master_locations(
 def test_compile_commands_sequence(tmp_path):
     paths = pipeline.Paths(tmp_path)
 
-    commands = pipeline.compile_commands(
-        paths, ["Regular"], ["--flatten-components"]
-    )
+    commands = pipeline.compile_commands(paths, ["Regular"], ["--flatten-components"])
 
     name = "FiraCodeChunky-Regular"
     ufo = paths.instance_dir / f"{name}.ufo"
@@ -221,8 +213,7 @@ def test_build_statics_runs_commands_and_finalizes_outputs(
         paths, list(WEIGHT_CLASSES), ["--flatten-components"], otf_hint=True
     )
     assert result == [
-        paths.dist_ttf / f"FiraCodeChunky-{style}.ttf"
-        for style in WEIGHT_CLASSES
+        paths.dist_ttf / f"FiraCodeChunky-{style}.ttf" for style in WEIGHT_CLASSES
     ]
     assert finalized == [
         item
@@ -289,8 +280,9 @@ def test_run_build_orchestrates_success(tmp_path, monkeypatch, fake_runner):
     monkeypatch.setattr(
         pipeline,
         "convert_upstream",
-        lambda actual_paths, runner: calls.append(("convert", actual_paths, runner))
-        or paths.designspace,
+        lambda actual_paths, runner: (
+            calls.append(("convert", actual_paths, runner)) or paths.designspace
+        ),
     )
     monkeypatch.setattr(
         pipeline,
@@ -312,18 +304,16 @@ def test_run_build_orchestrates_success(tmp_path, monkeypatch, fake_runner):
     monkeypatch.setattr(
         pipeline,
         "build_woff2",
-        lambda paths_arg, out_dir: calls.append(
-            ("woff2", list(paths_arg), out_dir)
-        )
-        or [],
+        lambda paths_arg, out_dir: (
+            calls.append(("woff2", list(paths_arg), out_dir)) or []
+        ),
     )
     monkeypatch.setattr(
         pipeline,
         "build_variable",
-        lambda actual_paths, runner, flags: calls.append(
-            ("variable", actual_paths, runner, list(flags))
-        )
-        or vf_path,
+        lambda actual_paths, runner, flags: (
+            calls.append(("variable", actual_paths, runner, list(flags))) or vf_path
+        ),
     )
     runner = fake_runner
 
@@ -432,9 +422,7 @@ def test_run_build_orchestrates_variable_after_statics(
 ):
     paths = pipeline.Paths(tmp_path)
     order = []
-    monkeypatch.setattr(
-        pipeline, "convert_upstream", lambda p, r: paths.designspace
-    )
+    monkeypatch.setattr(pipeline, "convert_upstream", lambda p, r: paths.designspace)
     monkeypatch.setattr(pipeline, "prepare_designspace", lambda ds_path: object())
     monkeypatch.setattr(pipeline, "bake_all", lambda ds: [])
     monkeypatch.setattr(
@@ -455,9 +443,7 @@ def test_run_build_orchestrates_variable_after_statics(
     assert order == ["statics", "woff2", "variable", "woff2"]
 
 
-def test_run_build_returns_1_on_runner_failure(
-    tmp_path, fake_runner, caplog
-):
+def test_run_build_returns_1_on_runner_failure(tmp_path, fake_runner, caplog):
     fake_runner.fail_on.add("glyphs2ufo")
 
     with caplog.at_level(logging.ERROR):

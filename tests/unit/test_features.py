@@ -52,7 +52,7 @@ def test_sanitize_rewrites_cv_feature_names_to_cvparameters():
     assert "FeatUILabelNameID {" in fixed
     assert 'name "alternate lowercase a";' in fixed
     # ssXX featureNames must be preserved verbatim.
-    assert "featureNames {\n  name \"stylistic set one\";" in fixed
+    assert 'featureNames {\n  name "stylistic set one";' in fixed
     _parse(fixed)  # now compiles
 
 
