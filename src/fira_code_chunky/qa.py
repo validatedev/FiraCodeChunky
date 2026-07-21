@@ -9,6 +9,7 @@ from typing import Any, cast
 import pathops
 from fontTools.ttLib import TTFont
 
+from fira_code_chunky import PS_FAMILY
 from fira_code_chunky.metadata import FS_BOLD, FS_REGULAR, MAC_BOLD, RIBBI, WIN
 
 VOLATILE = re.compile(r".*(checkSumAdjustment|modified value=|created value=).*\n")
@@ -37,10 +38,19 @@ def assert_static_metadata(
     os2 = cast(Any, font["OS/2"])
     if os2.usWeightClass != weight_class:
         problems.append(f"usWeightClass {os2.usWeightClass} != {weight_class}")
+    if os2.usWidthClass != 5:
+        problems.append(f"usWidthClass {os2.usWidthClass} != 5")
+    post = cast(Any, font["post"])
+    if post.isFixedPitch != 1:
+        problems.append(f"isFixedPitch {post.isFixedPitch} != 1")
     ribbi = style in RIBBI
     expect_1 = family if ribbi else f"{family} {style}"
     expect_2 = style if ribbi else "Regular"
-    checks = {1: expect_1, 2: expect_2}
+    checks = {
+        1: expect_1,
+        2: expect_2,
+        6: f"{PS_FAMILY}-{style.replace(' ', '')}",
+    }
     if not ribbi:
         checks |= {16: family, 17: style}
     for nid, expected in checks.items():

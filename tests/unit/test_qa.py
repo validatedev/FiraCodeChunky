@@ -3,6 +3,10 @@ import pytest
 from fira_code_chunky import metadata, qa
 
 
+def pin_valid_metadata(font, style="Regular", weight_class=400):
+    metadata.pin_all(font, "Fira Code Chunky", style, weight_class)
+
+
 def test_normalized_ttx_scrubs_volatile(micro_ttf):
     out = qa.normalized_ttx(micro_ttf, tables=("head",))
     assert "checkSumAdjustment" not in out
@@ -19,12 +23,12 @@ def test_normalized_ttx_stable_across_saves(micro_ttf, tmp_path):
 
 
 def test_assert_static_metadata_passes_after_pin(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
 def test_assert_static_metadata_catches_450_regular(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["OS/2"].usWeightClass = 450  # the classic silent defect
     with pytest.raises(qa.QAError, match="usWeightClass"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
@@ -41,46 +45,67 @@ def test_glyph_overlap_detection(micro_ttf):
 
 def test_assert_static_metadata_passes_non_ribbi(micro_ttf):
     # Non-RIBBI style exercises name 16/17 and the typographic-family branch.
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Medium", 500)
+    pin_valid_metadata(micro_ttf, "Medium", 500)
     qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Medium", 500)
 
 
 def test_assert_static_metadata_passes_bold(micro_ttf):
     # Bold exercises the want_bold=True side of every bit check.
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Bold", 700)
+    pin_valid_metadata(micro_ttf, "Bold", 700)
     qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Bold", 700)
 
 
 def test_assert_static_metadata_catches_wrong_name(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["name"].setName("Wrong Family", 1, *metadata.WIN)
     with pytest.raises(qa.QAError, match="name 1"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
+def test_assert_static_metadata_catches_wrong_postscript_name(micro_ttf):
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].setName("WrongPSName", 6, *metadata.WIN)
+    with pytest.raises(qa.QAError, match="name 6"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_non_fixed_pitch(micro_ttf):
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["post"].isFixedPitch = 0
+    with pytest.raises(qa.QAError, match="isFixedPitch"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_wrong_width_class(micro_ttf):
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["OS/2"].usWidthClass = 4
+    with pytest.raises(qa.QAError, match="usWidthClass"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
 def test_assert_static_metadata_catches_ribbi_typographic_names(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["name"].setName("Fira Code Chunky", 16, *metadata.WIN)
     with pytest.raises(qa.QAError, match="must not carry name 16/17"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
 def test_assert_static_metadata_catches_bold_bit(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["OS/2"].fsSelection |= metadata.FS_BOLD
     with pytest.raises(qa.QAError, match="fsSelection BOLD bit wrong"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
 def test_assert_static_metadata_catches_regular_bit(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["OS/2"].fsSelection &= ~metadata.FS_REGULAR
     with pytest.raises(qa.QAError, match="fsSelection REGULAR bit wrong"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
 def test_assert_static_metadata_catches_macstyle(micro_ttf):
-    metadata.pin_all(micro_ttf, "Fira Code Chunky", "Regular", 400)
+    pin_valid_metadata(micro_ttf)
     micro_ttf["head"].macStyle |= metadata.MAC_BOLD
     with pytest.raises(qa.QAError, match="macStyle bold bit wrong"):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)

@@ -73,6 +73,8 @@ def test_pin_all(micro_ttf, tmp_path):
     pin_all(micro_ttf, "Fira Code Chunky", "SemiBold", 600)
     font = reopened(micro_ttf, tmp_path)
     assert font["OS/2"].usWeightClass == 600
+    assert font["OS/2"].usWidthClass == 5
+    assert font["post"].isFixedPitch == 1
     assert name(font, 17) == "SemiBold"
     assert font["OS/2"].fsSelection & (1 << 6)
     assert not font["OS/2"].fsSelection & (1 << 5)

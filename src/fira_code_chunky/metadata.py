@@ -64,6 +64,8 @@ def rename_cff(font: TTFont, ps_name: str, family: str, full_name: str) -> None:
 
 def pin_all(font: TTFont, family: str, style: str, weight_class: int) -> None:
     pin_weight_class(font, weight_class)
+    cast(Any, font["OS/2"]).usWidthClass = 5
+    cast(Any, font["post"]).isFixedPitch = 1
     pin_style_bits(font, style)
     pin_names(font, family, style)
     rename_cff(
