@@ -20,6 +20,7 @@ from fontTools.designspaceLib import (
     DesignSpaceDocument,
     SourceDescriptor,
 )
+from fontTools.otlLib.builder import buildStatTable
 from fontTools.ttLib import TTFont
 
 from fira_code_chunky import FAMILY_NAME, VF_DESIGN_LOCATION_KEY, WEIGHT_CLASSES
@@ -28,22 +29,78 @@ from fira_code_chunky.qa import QAError
 
 AXIS_NAME = "Weight"
 
+# STAT weight-axis values mirroring the official FiraCode-VF: five format-2
+# ranges (one per named weight) plus a format-3 style link from the elidable
+# Regular to Bold. ELIDABLE (0x2) hides "Regular" from composed style names.
+# Without these records apps cannot resolve named instances from the VF (F9).
+_ELIDABLE = 0x2
+_STAT_AXES = [
+    {
+        "tag": "wght",
+        "name": AXIS_NAME,
+        "values": [
+            {
+                "name": "Light",
+                "nominalValue": 300,
+                "rangeMinValue": 300,
+                "rangeMaxValue": 350,
+            },
+            {
+                "name": "Regular",
+                "nominalValue": 400,
+                "rangeMinValue": 350,
+                "rangeMaxValue": 450,
+                "flags": _ELIDABLE,
+            },
+            {
+                "name": "Medium",
+                "nominalValue": 500,
+                "rangeMinValue": 450,
+                "rangeMaxValue": 550,
+            },
+            {
+                "name": "SemiBold",
+                "nominalValue": 600,
+                "rangeMinValue": 550,
+                "rangeMaxValue": 650,
+            },
+            {
+                "name": "Bold",
+                "nominalValue": 700,
+                "rangeMinValue": 650,
+                "rangeMaxValue": 700,
+            },
+            {"name": "Regular", "value": 400, "linkedValue": 700, "flags": _ELIDABLE},
+        ],
+    }
+]
 
-def _read_baked(instance_dir: Path) -> list[tuple[int, float, Path, str]]:
-    """Return (user, design, path, style) for every baked instance UFO."""
+
+def _read_baked(
+    instance_dir: Path,
+) -> tuple[list[tuple[int, float, Path, str]], list[str]]:
+    """Return sorted (user, design, path, style) entries + skip-export glyphs.
+
+    The skip-export list is taken from the default (Regular) master so the VF
+    designspace can honor it; without it ufo2ft leaks build parts such as
+    ``_part.numbersign`` into the variable font (F6).
+    """
     entries: list[tuple[int, float, Path, str]] = []
+    skip_export: list[str] = []
     for ufo_path in sorted(instance_dir.glob("FiraCodeChunky-*.ufo")):
         font = ufoLib2.Font.open(ufo_path)
         user = int(cast(int, font.info.openTypeOS2WeightClass))
         design = float(cast(float, font.lib[VF_DESIGN_LOCATION_KEY]))
         style = str(font.info.styleName)
+        if user == WEIGHT_CLASSES["Regular"]:
+            skip_export = list(font.lib.get("public.skipExportGlyphs", []))
         entries.append((user, design, ufo_path, style))
-    return sorted(entries)
+    return sorted(entries), skip_export
 
 
 def build_vf_designspace(instance_dir: Path, out_path: Path) -> DesignSpaceDocument:
     """Build a 3-master VF designspace whose avar map carries the weight curve."""
-    entries = _read_baked(instance_dir)
+    entries, skip_export = _read_baked(instance_dir)
     users = [user for user, *_ in entries]
     default_user = WEIGHT_CLASSES["Regular"]
     master_users = {min(users), default_user, max(users)}
@@ -69,6 +126,9 @@ def build_vf_designspace(instance_dir: Path, out_path: Path) -> DesignSpaceDocum
         source.location = {AXIS_NAME: design}
         ds.addSource(source)
 
+    if skip_export:
+        ds.lib["public.skipExportGlyphs"] = skip_export
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     ds.write(out_path)
     return ds
@@ -88,4 +148,6 @@ def finalize_vf(path: Path) -> None:
         for name_id in (1, 16):
             if name.getName(name_id, *WIN) is not None:
                 name.setName(FAMILY_NAME, name_id, *WIN)
+        # Elided fallback name ID 2 (Regular) matches the official VF.
+        buildStatTable(font, _STAT_AXES, elidedFallbackName=2)
         font.save(path)

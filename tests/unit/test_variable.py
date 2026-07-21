@@ -41,6 +41,55 @@ def test_vf_designspace_structure(micro_ds, tmp_path):
     assert (tmp_path / "vf.designspace").exists()
 
 
+def test_vf_designspace_carries_skip_export_glyphs(micro_ds, tmp_path):
+    # F6: the VF designspace must propagate the Regular master's
+    # public.skipExportGlyphs, or ufo2ft leaks build parts (e.g.
+    # _part.numbersign) into the variable font.
+    make_chunky(micro_ds)
+    baked = pipeline.bake_all(micro_ds)
+    inst_dir = tmp_path / "instances"
+    inst_dir.mkdir()
+    for style, font in baked:
+        if style == "Regular":
+            font.lib["public.skipExportGlyphs"] = ["_part.demo"]
+        font.save(inst_dir / f"FiraCodeChunky-{style}.ufo", overwrite=True)
+
+    ds = variable.build_vf_designspace(inst_dir, tmp_path / "vf.designspace")
+
+    assert ds.lib["public.skipExportGlyphs"] == ["_part.demo"]
+
+
+def test_finalize_vf_builds_stat_axis_values(tmp_path):
+    # F9: the VF must carry the 6 official STAT AxisValues (5 format-2 weight
+    # ranges + 1 format-3 Regular->Bold style link) so apps resolve named
+    # instances; the shipped VF had zero.
+    path = _synthetic_vf(
+        tmp_path / "vf.ttf", family="Placeholder", with_typographic=True
+    )
+
+    variable.finalize_vf(path)
+
+    font = TTFont(path)
+    stat = cast(Any, font["STAT"]).table
+    assert stat.ElidedFallbackNameID == 2
+    values = stat.AxisValueArray.AxisValue
+    assert [v.Format for v in values] == [2, 2, 2, 2, 2, 3]
+    name = cast(Any, font["name"])
+    fmt2 = {v.NominalValue: v for v in values if v.Format == 2}
+    assert {n: name.getDebugName(v.ValueNameID) for n, v in fmt2.items()} == {
+        300.0: "Light",
+        400.0: "Regular",
+        500.0: "Medium",
+        600.0: "SemiBold",
+        700.0: "Bold",
+    }
+    assert fmt2[300.0].RangeMinValue == 300 and fmt2[300.0].RangeMaxValue == 350
+    assert fmt2[400.0].Flags == 0x2  # Regular is elidable
+    (link,) = [v for v in values if v.Format == 3]
+    assert (link.Value, link.LinkedValue, link.Flags) == (400.0, 700.0, 0x2)
+    assert name.getDebugName(link.ValueNameID) == "Regular"
+
+
 def _synthetic_vf(path, *, family, with_typographic, axis_range=(300, 400, 700)):
     fb = FontBuilder(unitsPerEm=1000, isTTF=True)
     fb.setupGlyphOrder([".notdef"])
