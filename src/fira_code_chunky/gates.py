@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import shlex
+
 from fontTools.designspaceLib import DesignSpaceDocument
 
 CUSTOM_PARAMETERS_KEY = "com.schriftgestaltung.customParameters"
 WEIGHT_CLASS_KEYS = {"weightClass", "openTypeOS2WeightClass"}
-FONTMAKE_OPTIONS_WITH_VALUES = {"-g", "-m", "-o", "-u", "--output-dir"}
+FONTMAKE_OPTIONS_WITH_VALUES = {
+    "-g",
+    "-m",
+    "-o",
+    "-u",
+    "--output-dir",
+    "--output-path",
+}
+FONTMAKE_OPTIONS_WITH_OPTIONAL_VALUES = {"-i", "--interpolate"}
 
 
 class GateError(RuntimeError):
@@ -34,17 +44,27 @@ def extract_fontmake_flags(build_script_text: str) -> list[str]:
     """Extract order-preserving unique flags from upstream fontmake commands."""
     flags: list[str] = []
     for line in build_script_text.splitlines():
-        tokens = line.strip().split()
+        stripped = line.strip()
+        try:
+            tokens = shlex.split(stripped, posix=True)
+        except ValueError:
+            tokens = stripped.split()
         if not tokens or tokens[0] != "fontmake":
             continue
 
+        rest = tokens[1:]
         skip_next = False
-        for token in tokens[1:]:
+        for index, token in enumerate(rest):
             if skip_next:
                 skip_next = False
                 continue
             if token in FONTMAKE_OPTIONS_WITH_VALUES:
                 skip_next = True
+                continue
+            if token in FONTMAKE_OPTIONS_WITH_OPTIONAL_VALUES:
+                next_token = rest[index + 1] if index + 1 < len(rest) else None
+                if next_token is not None and not next_token.startswith("-"):
+                    skip_next = True
                 continue
             if token not in flags:
                 flags.append(token)

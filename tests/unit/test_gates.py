@@ -17,6 +17,15 @@ fontmaker --keep-this-out
 echo fontmake --also-keep-this-out
 """
 
+UPSTREAM_BUILD_SH = """
+#!/bin/bash
+fontmake -g "FiraCode.glyphs" -o ttf --output-path "distr/ttf/FiraCode-Regular.ttf" -i ".* Regular" --flatten-components
+"""
+
+BARE_INTERPOLATE_BUILD_SH = """
+fontmake -g F.glyphs -o ttf -i --flatten-components
+"""
+
 CUSTOM_PARAMETERS_KEY = "com.schriftgestaltung.customParameters"
 
 
@@ -61,6 +70,14 @@ def test_extract_fontmake_flags_skips_inputs_outputs_and_other_commands():
         "--filter",
         "DecomposeTransformedComponentsFilter",
     ]
+
+
+def test_extract_fontmake_flags_handles_quoted_output_path_and_instance_pattern():
+    assert extract_fontmake_flags(UPSTREAM_BUILD_SH) == ["--flatten-components"]
+
+
+def test_extract_fontmake_flags_treats_bare_interpolate_flag_as_valueless():
+    assert extract_fontmake_flags(BARE_INTERPOLATE_BUILD_SH) == ["--flatten-components"]
 
 
 def test_gate_report_raises_on_nonlinear_axis(micro_ds):
