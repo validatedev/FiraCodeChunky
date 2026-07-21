@@ -50,6 +50,7 @@ def test_convert_upstream_issues_glyphs2ufo_command(tmp_path, fake_runner):
             "--designspace-path",
             str(paths.designspace),
             "--write-public-skip-export-glyphs",
+            "--generate-GDEF",
         ]
     ]
     assert paths.master_dir.is_dir()
@@ -93,6 +94,11 @@ def test_prepare_designspace_loads_gates_and_patches(
         650,
         750,
     ]
+    # GDEF categories applied so spacing accents cannot become mark-classed.
+    for source in ds.sources:
+        font = cast(ufoLib2.Font, source.font)
+        cats = font.lib.get("public.openTypeCategories", {})
+        assert cats.get("acutecomb") == "mark"
 
 
 def test_bake_all_five_styles(micro_ds):
@@ -109,6 +115,10 @@ def test_bake_all_five_styles(micro_ds):
     assert fonts["Bold"].info.openTypeOS2WeightClass == 700
     xs = sorted({point.x for point in fonts["Bold"]["I"].contours[0].points})
     assert xs == [235, 365]
+    # Bold is extrapolated without lib copy; categories must still be present.
+    assert fonts["Bold"].lib.get("public.openTypeCategories", {}).get("acutecomb") == (
+        "mark"
+    )
 
 
 def test_bake_all_uses_mapped_target_and_actual_master_locations(micro_ds, monkeypatch):

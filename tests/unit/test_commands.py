@@ -11,6 +11,8 @@ def test_glyphs2ufo():
     assert argv[0] == "glyphs2ufo"
     assert "F.glyphs" in argv
     assert "--designspace-path" in argv
+    # Spacing diacritics need openTypeCategories so they are not GDEF marks.
+    assert "--generate-GDEF" in argv
 
 
 def test_fontmake_ufo_ttf():

@@ -1,8 +1,9 @@
 import io
 
+import ufoLib2
 from fontTools.feaLib.parser import Parser
 
-from fira_code_chunky.features import sanitize_features
+from fira_code_chunky.features import ensure_opentype_categories, sanitize_features
 
 # Upstream Fira Code stores character-variant UI labels as `featureNames`
 # blocks inside cvXX features. feaLib only accepts `featureNames` in stylistic
@@ -63,3 +64,47 @@ def test_sanitize_is_identity_without_cv_features():
 
 def test_sanitize_handles_empty_text():
     assert sanitize_features("") == ""
+
+
+def _spacing_grave_ufo() -> ufoLib2.Font:
+    """Minimal UFO: spacing grave (U+0060) + true combining gravecomb.
+
+    Both carry a ``_top`` mark anchor (as in Fira Code). Without categories,
+    ufo2ft would mark-class both; with categories only gravecomb is a mark.
+    """
+    font = ufoLib2.Font()
+    font.info.unitsPerEm = 1000
+    font.info.familyName = "Test"
+    font.info.styleName = "Regular"
+    grave = font.newGlyph("grave")
+    grave.unicodes = [0x60]
+    grave.width = 1200
+    grave.appendAnchor({"name": "_top", "x": 600, "y": 700})
+    comb = font.newGlyph("gravecomb")
+    comb.unicodes = [0x300]
+    comb.width = 0
+    comb.appendAnchor({"name": "_top", "x": 600, "y": 700})
+    base = font.newGlyph("S")
+    base.unicodes = [0x53]
+    base.width = 1200
+    base.appendAnchor({"name": "top", "x": 600, "y": 700})
+    return font
+
+
+def test_ensure_opentype_categories_keeps_spacing_grave_out_of_mark_class():
+    font = _spacing_grave_ufo()
+
+    categories = ensure_opentype_categories(font)
+
+    assert categories.get("gravecomb") == "mark"
+    assert categories.get("grave") != "mark"
+    assert "grave" not in categories or categories["grave"] != "mark"
+    assert font.lib["public.openTypeCategories"].get("gravecomb") == "mark"
+    assert font.lib["public.openTypeCategories"].get("grave") != "mark"
+
+
+def test_ensure_opentype_categories_empty_font_is_noop():
+    font = ufoLib2.Font()
+    font.info.unitsPerEm = 1000
+    assert ensure_opentype_categories(font) == {}
+    assert "public.openTypeCategories" not in font.lib

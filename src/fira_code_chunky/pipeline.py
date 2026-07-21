@@ -103,6 +103,8 @@ def prepare_designspace(ds_path: Path) -> DesignSpaceDocument:
     for source in ds.sources:
         font = cast(ufoLib2.Font, source.font)
         font.features.text = features.sanitize_features(font.features.text or "")
+        # Spacing grave/acute must not land in GDEF mark class (backtick bug).
+        features.ensure_opentype_categories(font)
     return ds
 
 
@@ -137,6 +139,10 @@ def bake_all(ds: DesignSpaceDocument) -> list[tuple[str, ufoLib2.Font]]:
     bake.apply_instance_metadata(bold_font, bold_instance, WEIGHT_CLASSES["Bold"])
     bold_font.lib[VF_DESIGN_LOCATION_KEY] = target
     baked.append(("Bold", bold_font))
+    # extrapolate_font does not copy font.lib; re-apply categories on every
+    # baked UFO so fontmake sees them even if Instantiator omitted the key.
+    for _style, font in baked:
+        features.ensure_opentype_categories(font)
     return baked
 
 

@@ -16,6 +16,11 @@ def glyphs2ufo_command(glyphs: Path, master_dir: Path, designspace: Path) -> lis
         "--designspace-path",
         str(designspace),
         "--write-public-skip-export-glyphs",
+        # Default is --no-generate-GDEF (backward compat). Without categories,
+        # ufo2ft mark writers treat spacing accents (grave, acute, …) that
+        # carry _top anchors as GDEF marks; terminals then glue backticks onto
+        # the previous letter. Match Glyphs export: write openTypeCategories.
+        "--generate-GDEF",
     ]
 
 
