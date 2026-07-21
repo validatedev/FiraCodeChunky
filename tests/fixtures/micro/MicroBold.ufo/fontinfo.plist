@@ -12,12 +12,34 @@
     <integer>-200</integer>
     <key>familyName</key>
     <string>Micro Fira</string>
+    <key>openTypeNameDesigner</key>
+    <string>The Micro Fira Project Authors</string>
+    <key>openTypeNameDesignerURL</key>
+    <string>https://example.invalid/designer</string>
     <key>openTypeNameLicense</key>
     <string>This Font Software is licensed under the SIL Open Font License, Version 1.1.</string>
     <key>openTypeNameLicenseURL</key>
     <string>http://scripts.sil.org/OFL</string>
+    <key>openTypeNameManufacturer</key>
+    <string>The Micro Fira Project Authors</string>
+    <key>openTypeNameManufacturerURL</key>
+    <string>https://example.invalid/manufacturer</string>
+    <key>openTypeOS2Selection</key>
+    <array>
+      <integer>7</integer>
+    </array>
+    <key>openTypeOS2StrikeoutPosition</key>
+    <integer>318</integer>
+    <key>openTypeOS2StrikeoutSize</key>
+    <integer>50</integer>
+    <key>openTypeOS2Type</key>
+    <array/>
     <key>openTypeOS2VendorID</key>
     <string>MICR</string>
+    <key>postscriptUnderlinePosition</key>
+    <integer>-100</integer>
+    <key>postscriptUnderlineThickness</key>
+    <integer>50</integer>
     <key>styleName</key>
     <string>Bold</string>
     <key>trademark</key>

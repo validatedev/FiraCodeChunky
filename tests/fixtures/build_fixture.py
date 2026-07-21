@@ -38,6 +38,21 @@ def build_master(style, params):
     info.openTypeNameLicenseURL = "http://scripts.sil.org/OFL"
     info.openTypeOS2VendorID = "MICR"
     info.versionMajor, info.versionMinor = 6, 2
+    # Family-constant metadata the synthetic Bold must inherit (extrapolate
+    # copies these verbatim; QA asserts them per static):
+    #   installable embedding (F5), USE_TYPO_METRICS (F7), the family's constant
+    #   underline/strikeout geometry (F4), and designer/manufacturer records
+    #   that populate name IDs 8/9/11/12 (F7).
+    info.openTypeOS2Type = []
+    info.openTypeOS2Selection = [7]
+    info.postscriptUnderlinePosition = -100
+    info.postscriptUnderlineThickness = 50
+    info.openTypeOS2StrikeoutPosition = 318
+    info.openTypeOS2StrikeoutSize = 50
+    info.openTypeNameDesigner = "The Micro Fira Project Authors"
+    info.openTypeNameDesignerURL = "https://example.invalid/designer"
+    info.openTypeNameManufacturer = "The Micro Fira Project Authors"
+    info.openTypeNameManufacturerURL = "https://example.invalid/manufacturer"
 
     g = font.newGlyph(".notdef")
     g.width = 600

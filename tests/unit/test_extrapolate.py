@@ -121,6 +121,92 @@ def test_extrapolated_font_copies_ofl_metadata(micro_masters):
     assert font.info.openTypeNameVersion is None
 
 
+def test_extrapolated_font_copies_family_constant_metadata(micro_masters):
+    # F4/F5/F7: fields the family keeps constant across weights are copied
+    # verbatim from the light master (not extrapolated), so the synthetic Bold
+    # inherits installable embedding, USE_TYPO_METRICS, constant underline/
+    # strikeout geometry, and the designer/manufacturer name records.
+    light, bold = micro_masters
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.info.openTypeOS2Type == light.info.openTypeOS2Type == []
+    assert font.info.openTypeOS2Selection == light.info.openTypeOS2Selection == [7]
+    assert font.info.postscriptUnderlinePosition == -100
+    assert font.info.postscriptUnderlineThickness == 50
+    assert font.info.openTypeOS2StrikeoutPosition == 318
+    assert font.info.openTypeOS2StrikeoutSize == 50
+    assert font.info.openTypeNameDesigner == light.info.openTypeNameDesigner
+    assert font.info.openTypeNameDesignerURL == light.info.openTypeNameDesignerURL
+    assert font.info.openTypeNameManufacturer == light.info.openTypeNameManufacturer
+    assert (
+        font.info.openTypeNameManufacturerURL == light.info.openTypeNameManufacturerURL
+    )
+
+
+def test_extrapolated_font_interpolates_cff_hint_lists(micro_masters):
+    # F8: blue zones and standard stems scale with weight, so they are
+    # interpolated element-wise at the same t as the outlines (not copied).
+    light, bold = micro_masters
+    light.info.postscriptBlueValues = [-20, 0, 700, 720]
+    bold.info.postscriptBlueValues = [-40, 0, 720, 760]
+    light.info.postscriptStemSnapH = [40]
+    bold.info.postscriptStemSnapH = [120]
+    light.info.postscriptStemSnapV = [50]
+    bold.info.postscriptStemSnapV = [130]
+    light.info.postscriptOtherBlues = [-200, -180]
+    bold.info.postscriptOtherBlues = [-260, -220]
+
+    font = extrapolate_font(light, bold, design_t(750))  # t = 1.125
+
+    assert font.info.postscriptBlueValues == [-42, 0, 722, 765]
+    assert font.info.postscriptStemSnapH == [130]
+    assert font.info.postscriptStemSnapV == [140]
+    assert font.info.postscriptOtherBlues == [-268, -225]
+
+
+def test_extrapolated_font_skips_absent_cff_hint_lists(micro_masters):
+    # Masters without blue zones must not crash and leave the field unset.
+    light, bold = micro_masters
+    assert light.info.postscriptBlueValues is None
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.info.postscriptBlueValues is None
+
+
+def test_extrapolated_font_copies_glyph_governance_lib(micro_masters):
+    # F6: skip-export and production-name lib keys must ride along, or the
+    # Bold binary leaks build parts (advanceWidthMax break) and Glyphs
+    # nice-names instead of uniXXXX.
+    light, bold = micro_masters
+    light.lib["public.skipExportGlyphs"] = ["_part.demo"]
+    light.lib["public.postscriptNames"] = {"I": "uni0049"}
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.lib["public.skipExportGlyphs"] == ["_part.demo"]
+    assert font.lib["public.postscriptNames"] == {"I": "uni0049"}
+    # Copies, not shared references.
+    font.lib["public.skipExportGlyphs"].append("mutated")
+    assert light.lib["public.skipExportGlyphs"] == ["_part.demo"]
+
+
+def test_extrapolated_font_omits_absent_governance_lib(micro_masters):
+    light, bold = micro_masters
+    assert "public.skipExportGlyphs" not in light.lib
+    font = extrapolate_font(light, bold, design_t(750))
+    assert "public.skipExportGlyphs" not in font.lib
+    assert "public.postscriptNames" not in font.lib
+
+
+def test_extrapolated_font_carries_original_width_lib(micro_masters):
+    # F1/F2: the per-glyph originalWidth key must survive so features.py can
+    # restore the spacing overlays' 1200 advance on the Bold.
+    from fira_code_chunky.extrapolate import ORIGINAL_WIDTH_KEY
+
+    light, bold = micro_masters
+    light["acutecomb"].lib[ORIGINAL_WIDTH_KEY] = 1200
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font["acutecomb"].lib[ORIGINAL_WIDTH_KEY] == 1200
+    # A glyph without the key stays clean.
+    assert ORIGINAL_WIDTH_KEY not in font["I"].lib
+
+
 def test_stem_monotonic_guard():
     assert stem_widths_monotonic([50, 70, 120, 130])
     assert not stem_widths_monotonic([50, 70, 120, 119])
