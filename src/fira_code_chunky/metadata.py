@@ -11,6 +11,7 @@ from fira_code_chunky import PS_FAMILY
 WIN = (3, 1, 0x409)
 RIBBI = {"Regular": "regular", "Bold": "bold"}
 FS_BOLD, FS_REGULAR = 1 << 5, 1 << 6
+FS_USE_TYPO_METRICS = 1 << 7
 MAC_BOLD = 1
 
 

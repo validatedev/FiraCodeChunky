@@ -142,6 +142,62 @@ def test_assert_static_metadata_catches_empty_copyright(micro_ttf):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
+def test_assert_static_metadata_catches_restricted_fstype(micro_ttf):
+    # F5: fsType=4 (Restricted License embedding) is exactly what the Bold shipped.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["OS/2"].fsType = 4
+    with pytest.raises(qa.QAError, match="fsType"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_missing_use_typo_metrics(micro_ttf):
+    # F7: the Bold dropped fsSelection bit 7 (USE_TYPO_METRICS).
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["OS/2"].fsSelection &= ~metadata.FS_USE_TYPO_METRICS
+    with pytest.raises(qa.QAError, match="USE_TYPO_METRICS"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_extrapolated_underline(micro_ttf):
+    # F4: the Bold extrapolated underline to -146/98 instead of the family -100/50.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["post"].underlinePosition = -146
+    with pytest.raises(qa.QAError, match="underline"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_extrapolated_strikeout(micro_ttf):
+    # F4: the Bold extrapolated strikeout to 638/98 instead of 318/50.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["OS/2"].yStrikeoutSize = 98
+    with pytest.raises(qa.QAError, match="strikeout"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_missing_designer_name(micro_ttf):
+    # F7: name IDs 8/9/11/12 (manufacturer/designer + URLs) were missing on Bold.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["name"].removeNames(nameID=9)
+    with pytest.raises(qa.QAError, match="name 9"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_skip_export_leak(micro_ttf):
+    # F6: a leaked _part.* build glyph must be caught.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf.setGlyphOrder([*micro_ttf.getGlyphOrder(), "_part.numbersign"])
+    with pytest.raises(qa.QAError, match="skip-export leak"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
+def test_assert_static_metadata_catches_broken_advance_width_max(micro_ttf):
+    # F6: the leaked build part pushed advanceWidthMax to 2562, above the cell.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["hhea"].advanceWidthMax = 2562
+    with pytest.raises(qa.QAError, match="advanceWidthMax"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
 def test_stem_width_raises_without_ink(micro_ttf):
     # y=5000 is far above the "I" glyph, so the band intersects no ink.
     with pytest.raises(qa.QAError, match="no ink"):

@@ -10,7 +10,14 @@ import pathops
 from fontTools.ttLib import TTFont
 
 from fira_code_chunky import PS_FAMILY
-from fira_code_chunky.metadata import FS_BOLD, FS_REGULAR, MAC_BOLD, RIBBI, WIN
+from fira_code_chunky.metadata import (
+    FS_BOLD,
+    FS_REGULAR,
+    FS_USE_TYPO_METRICS,
+    MAC_BOLD,
+    RIBBI,
+    WIN,
+)
 
 VOLATILE = re.compile(r".*(checkSumAdjustment|modified value=|created value=).*\n")
 
@@ -72,8 +79,49 @@ def assert_static_metadata(
         problems.append("fsSelection REGULAR bit wrong")
     if bool(cast(Any, font["head"]).macStyle & MAC_BOLD) != want_bold:
         problems.append("macStyle bold bit wrong")
+    _check_shipping_invariants(font, os2, post, problems)
     if problems:
         raise QAError(f"{family} {style}: " + "; ".join(problems))
+
+
+def _check_shipping_invariants(
+    font: TTFont, os2: Any, post: Any, problems: list[str]
+) -> None:
+    """Per-static invariants that regressed on the synthetic Bold.
+
+    - fsType==0: installable embedding (Bold had 4, Restricted License) (F5).
+    - USE_TYPO_METRICS: Bold dropped bit 7, resolving line height differently (F7).
+    - underline -100/50 and strikeout 318/50: constant across the family; the
+      Bold static extrapolated them to -146/98, 638/98 (F4).
+    - name IDs 8/9/11/12 (manufacturer/designer + URLs) present (F7).
+    - No exported ``_part.`` build glyph and advanceWidthMax equal to the modal
+      cell width: the leaked ``_part.numbersign`` (advance 2562) broke the
+      monospace invariant (F6).
+    """
+    if os2.fsType != 0:
+        problems.append(f"fsType {os2.fsType} != 0 (not installable)")
+    if not (os2.fsSelection & FS_USE_TYPO_METRICS):
+        problems.append("fsSelection missing USE_TYPO_METRICS")
+    underline = (post.underlinePosition, post.underlineThickness)
+    if underline != (-100, 50):
+        problems.append(f"underline {underline} != (-100, 50)")
+    strikeout = (os2.yStrikeoutPosition, os2.yStrikeoutSize)
+    if strikeout != (318, 50):
+        problems.append(f"strikeout {strikeout} != (318, 50)")
+    for nid in (8, 9, 11, 12):
+        if not _name(font, nid):
+            problems.append(f"name {nid}: missing or empty")
+    leaked = [g for g in font.getGlyphOrder() if g.startswith("_part.")]
+    if leaked:
+        problems.append(f"skip-export leak: {leaked[:3]}")
+    advances = [aw for aw, _lsb in cast(Any, font["hmtx"]).metrics.values()]
+    cells = [aw for aw in advances if aw > 0]
+    modal = max(cells, key=cells.count)
+    advance_width_max = cast(Any, font["hhea"]).advanceWidthMax
+    if advance_width_max != modal:
+        problems.append(
+            f"advanceWidthMax {advance_width_max} != modal cell width {modal}"
+        )
 
 
 def _glyph_path(font: TTFont, glyph_name: str) -> pathops.Path:
