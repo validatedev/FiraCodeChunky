@@ -57,6 +57,7 @@ def build_master(style, params):
     pen.addComponent("acutecomb", (1, 0, 0, 1, 0, params["acute_dy"]))
 
     font.kerning[("I", "O")] = params["kern"]
+    font.features.text = "feature calt { sub I' O by Iacute; } calt;\n"
     return font
 
 
