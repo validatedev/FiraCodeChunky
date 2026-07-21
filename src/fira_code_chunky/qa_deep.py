@@ -78,6 +78,34 @@ def shaped_advances(font_path: Path, text: str) -> list[tuple[str, int]]:
         ]
 
 
+def shaped_positions(font_path: Path, text: str) -> list[tuple[str, int, int, int]]:
+    """Shape ``text``; return ``[(glyph_name, x_advance, x_offset, y_offset)]``.
+
+    Unlike :func:`shaped_advances` this keeps the GPOS placement offsets, so
+    tests can pin mark-attachment anchoring (e.g. the deliberate dot-above fix).
+    """
+    path = Path(font_path)
+    blob = _hb.Blob.from_file_path(str(path))
+    face = _hb.Face(blob)
+    hb_font = _hb.Font(face)
+    buf = _hb.Buffer()
+    buf.add_str(text)
+    buf.guess_segment_properties()
+    _hb.shape(hb_font, buf)
+
+    with TTFont(path) as tt:
+        order = tt.getGlyphOrder()
+        return [
+            (
+                order[info.codepoint],
+                int(pos.x_advance),
+                int(pos.x_offset),
+                int(pos.y_offset),
+            )
+            for info, pos in zip(buf.glyph_infos, buf.glyph_positions, strict=True)
+        ]
+
+
 def _ink_bounds(
     font: TTFont, glyph_name: str
 ) -> tuple[float, float, float, float] | None:

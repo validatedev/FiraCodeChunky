@@ -150,6 +150,16 @@ def test_shaped_advances_io(micro_light_cmap_ttf_path):
     assert advances[1][1] == 600
 
 
+def test_shaped_positions_carries_offsets(micro_light_cmap_ttf_path):
+    # Same run as shaped_advances but with the GPOS placement offsets retained.
+    positions = qa_deep.shaped_positions(micro_light_cmap_ttf_path, "IO")
+    assert len(positions) == 2
+    for name, advance, x_off, y_off in positions:
+        assert advance == 600
+        assert x_off == 0 and y_off == 0
+        assert isinstance(name, str)
+
+
 def test_collision_free_io(micro_light_cmap_ttf_path):
     assert qa_deep.collision_free(micro_light_cmap_ttf_path, "IO") is True
 
