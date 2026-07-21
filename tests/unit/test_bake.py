@@ -42,3 +42,16 @@ def test_metadata_regular_vs_medium(micro_ds):
     assert med.info.openTypeNamePreferredFamilyName == FAMILY_NAME
     assert med.info.openTypeNamePreferredSubfamilyName == "Medium"
     assert med.info.postscriptFontName == "FiraCodeChunky-Medium"
+
+
+def test_cff_weight_name_corrects_medium_mislabel(micro_ds):
+    # F8: upstream instance data mislabels Medium's CFF Weight as "Semi-bold";
+    # apply_instance_metadata overrides it from the authoritative per-style map.
+    pairs = bake(micro_ds)
+    for inst, font in pairs:
+        font.info.postscriptWeightName = "Semi-bold"  # simulate upstream mislabel
+        apply_instance_metadata(font, inst, WEIGHT_CLASSES[inst.styleName])
+    by_style = {inst.styleName: font for inst, font in pairs}
+    assert by_style["Regular"].info.postscriptWeightName == "Normal"
+    assert by_style["Medium"].info.postscriptWeightName == "Medium"
+    assert by_style["SemiBold"].info.postscriptWeightName == "Semi-bold"

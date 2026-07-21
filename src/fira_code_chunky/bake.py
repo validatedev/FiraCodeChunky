@@ -9,11 +9,25 @@ or below the heaviest master location; the 750 Bold is extrapolated separately.
 
 from __future__ import annotations
 
+from typing import cast
+
 import ufoLib2
 from fontmake.instantiator import Instantiator
 from fontTools.designspaceLib import DesignSpaceDocument, InstanceDescriptor
 
 from fira_code_chunky.patch import axis_name
+
+# CFF TopDict Weight string per style. Upstream instance data mislabels Medium
+# as "Semi-bold" (F8); this authoritative map corrects it and gives the
+# synthetic Bold a Weight string (it had none). Regular stays "Normal" and
+# SemiBold "Semi-bold" to match the correct upstream/official values.
+_CFF_WEIGHT_NAMES = {
+    "Light": "Light",
+    "Regular": "Normal",
+    "Medium": "Medium",
+    "SemiBold": "Semi-bold",
+    "Bold": "Bold",
+}
 
 
 def _in_range(ds: DesignSpaceDocument, inst: InstanceDescriptor) -> bool:
@@ -43,6 +57,9 @@ def apply_instance_metadata(
     info.postscriptFontName = inst.postScriptFontName
     info.styleMapFamilyName = inst.styleMapFamilyName
     info.styleMapStyleName = inst.styleMapStyleName
+    info.postscriptWeightName = _CFF_WEIGHT_NAMES.get(
+        cast(str, inst.styleName), info.postscriptWeightName
+    )
     if inst.styleName in ("Regular", "Bold"):
         info.openTypeNamePreferredFamilyName = None
         info.openTypeNamePreferredSubfamilyName = None
