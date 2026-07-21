@@ -45,6 +45,7 @@ def build_master(style, params):
     #   that populate name IDs 8/9/11/12 (F7).
     info.openTypeOS2Type = []
     info.openTypeOS2Selection = [7]
+    info.openTypeOS2Panose = [2, 11, 8, 9, 5, 0, 0, 2, 0, 4]  # monospace Latin (F7)
     info.postscriptUnderlinePosition = -100
     info.postscriptUnderlineThickness = 50
     info.openTypeOS2StrikeoutPosition = 318

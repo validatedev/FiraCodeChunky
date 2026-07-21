@@ -15,8 +15,22 @@ from fira_code_chunky.metadata import (
     FS_REGULAR,
     FS_USE_TYPO_METRICS,
     MAC_BOLD,
+    PANOSE,
     RIBBI,
     WIN,
+)
+
+_PANOSE_FIELDS = (
+    "bFamilyType",
+    "bSerifStyle",
+    "bWeight",
+    "bProportion",
+    "bContrast",
+    "bStrokeVariation",
+    "bArmStyle",
+    "bLetterForm",
+    "bMidline",
+    "bXHeight",
 )
 
 VOLATILE = re.compile(r".*(checkSumAdjustment|modified value=|created value=).*\n")
@@ -102,6 +116,9 @@ def _check_shipping_invariants(
         problems.append(f"fsType {os2.fsType} != 0 (not installable)")
     if not (os2.fsSelection & FS_USE_TYPO_METRICS):
         problems.append("fsSelection missing USE_TYPO_METRICS")
+    panose = tuple(getattr(os2.panose, field) for field in _PANOSE_FIELDS)
+    if panose != PANOSE:
+        problems.append(f"PANOSE {panose} != {PANOSE}")
     underline = (post.underlinePosition, post.underlineThickness)
     if underline != (-100, 50):
         problems.append(f"underline {underline} != (-100, 50)")

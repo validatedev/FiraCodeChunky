@@ -100,10 +100,20 @@ def extrapolate_font(light: ufoLib2.Font, bold: ufoLib2.Font, t: float) -> ufoLi
         )
     out.features.text = light.features.text
     out.groups.update(light.groups)
-    # Glyph-set governance and production names live in the light master's lib
-    # (F6): skipExportGlyphs keeps build parts out of the Bold binary and
-    # postscriptNames restores uniXXXX names in place of Glyphs nice-names.
-    for key in ("public.skipExportGlyphs", "public.postscriptNames"):
+    # Master lib keys the synthetic Bold must share with its interpolated
+    # siblings (which inherit them from Instantiator). skipExportGlyphs keeps
+    # build parts out of the binary and postscriptNames restores uniXXXX names
+    # (F6); glyphOrder pins a stable order; the ufo2ft featureWriters/filters
+    # keys make Bold compile with the same feature writers as the masters. The
+    # master-specific keys (weightValue, fontMasterID/Order, weight) are
+    # deliberately NOT copied.
+    for key in (
+        "public.skipExportGlyphs",
+        "public.postscriptNames",
+        "public.glyphOrder",
+        "com.github.googlei18n.ufo2ft.featureWriters",
+        "com.github.googlei18n.ufo2ft.filters",
+    ):
         if key in light.lib:
             value = light.lib[key]
             out.lib[key] = list(value) if isinstance(value, list) else dict(value)
@@ -137,6 +147,11 @@ _OFL_INFO_ATTRS = (
     "openTypeOS2VendorID",
     "openTypeOS2Type",
     "openTypeOS2Selection",
+    # PANOSE is a family-constant classification; keep the source value
+    # [2,11,8,9,5,0,0,2,0,4] on the Bold rather than the all-zeros the binary
+    # shipped. Google Fonts requires panose[1]=2/panose[4]=9 for monospace, and
+    # official Bold's all-zeros is upstream's own inconsistency (do not copy it).
+    "openTypeOS2Panose",
     "postscriptUnderlinePosition",
     "postscriptUnderlineThickness",
     "openTypeOS2StrikeoutPosition",
@@ -179,11 +194,16 @@ def _extrapolate_hint_lists(
     for attr in _HINT_LIST_ATTRS:
         lv, bv = getattr(light.info, attr), getattr(bold.info, attr)
         if lv is not None and bv is not None:
-            setattr(
-                out.info,
-                attr,
-                [round(_lerp(a, b, t)) for a, b in zip(lv, bv, strict=True)],
+            _check(len(lv) == len(bv), f"{attr}: master pair counts differ")
+            result = [round(_lerp(a, b, t)) for a, b in zip(lv, bv, strict=True)]
+            # Blue zones and stem arrays must stay strictly increasing: this
+            # guards against a zone overlap or unsorted stems after
+            # extrapolation (a single value is trivially ordered).
+            _check(
+                stem_widths_monotonic(result),
+                f"{attr}: not strictly increasing after extrapolation: {result}",
             )
+            setattr(out.info, attr, result)
 
 
 def stem_widths_monotonic(widths: Sequence[float]) -> bool:

@@ -29,6 +29,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from fira_code_chunky.qa import QAError
+
 if TYPE_CHECKING:
     import ufoLib2
 
@@ -93,6 +95,13 @@ def _restore_spacing_overrides(font: ufoLib2.Font, categories: dict[str, str]) -
         if name not in font:
             continue
         original = font[name].lib.get(_ORIGINAL_WIDTH_KEY)
-        if original:
-            font[name].width = original
+        # Never emit an un-marked, zero-advance override: without a positive
+        # originalWidth we cannot restore the spacing cell, so fail the build
+        # loudly rather than shipping a collapsed glyph.
+        if not original or original <= 0:
+            raise QAError(
+                f"spacing override {name!r} has no positive originalWidth "
+                f"(got {original!r}); cannot restore its 1200 advance"
+            )
+        font[name].width = original
         categories.pop(name, None)

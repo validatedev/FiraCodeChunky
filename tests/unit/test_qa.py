@@ -198,6 +198,15 @@ def test_assert_static_metadata_catches_broken_advance_width_max(micro_ttf):
         qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
 
 
+def test_assert_static_metadata_catches_zeroed_panose(micro_ttf):
+    # F7/PANOSE: the Bold shipped all-zeros; every static must carry the
+    # family monospace PANOSE.
+    pin_valid_metadata(micro_ttf)
+    micro_ttf["OS/2"].panose.bProportion = 0  # break panose[3] (9 -> 0)
+    with pytest.raises(qa.QAError, match="PANOSE"):
+        qa.assert_static_metadata(micro_ttf, "Fira Code Chunky", "Regular", 400)
+
+
 def test_stem_width_raises_without_ink(micro_ttf):
     # y=5000 is far above the "I" glyph, so the band intersects no ink.
     with pytest.raises(qa.QAError, match="no ink"):

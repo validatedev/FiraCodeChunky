@@ -163,6 +163,49 @@ def test_extrapolated_font_interpolates_cff_hint_lists(micro_masters):
     assert font.info.postscriptOtherBlues == [-268, -225]
 
 
+def test_extrapolated_font_carries_panose(micro_masters):
+    # F7/PANOSE: the family-constant classification is copied to the Bold.
+    light, bold = micro_masters
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.info.openTypeOS2Panose == [2, 11, 8, 9, 5, 0, 0, 2, 0, 4]
+
+
+def test_extrapolated_font_copies_feature_writer_lib(micro_masters):
+    # Bold must compile with the same ufo2ft feature writers / glyph order as
+    # its interpolated siblings, which inherit them from the masters.
+    light, bold = micro_masters
+    light.lib["public.glyphOrder"] = ["I", "O", "Iacute", "acutecomb", ".notdef"]
+    light.lib["com.github.googlei18n.ufo2ft.featureWriters"] = [
+        {"class": "KernFeatureWriter"}
+    ]
+    light.lib["com.github.googlei18n.ufo2ft.filters"] = [{"name": "eraseOpenCorners"}]
+    font = extrapolate_font(light, bold, design_t(750))
+    assert font.lib["public.glyphOrder"] == ["I", "O", "Iacute", "acutecomb", ".notdef"]
+    assert font.lib["com.github.googlei18n.ufo2ft.featureWriters"] == [
+        {"class": "KernFeatureWriter"}
+    ]
+    assert font.lib["com.github.googlei18n.ufo2ft.filters"] == [
+        {"name": "eraseOpenCorners"}
+    ]
+
+
+def test_hint_list_pair_count_mismatch_raises(micro_masters):
+    light, bold = micro_masters
+    light.info.postscriptBlueValues = [-20, 0, 700, 720]
+    bold.info.postscriptBlueValues = [-40, 0, 720]  # one short
+    with pytest.raises(IncompatibleMastersError, match="pair counts"):
+        extrapolate_font(light, bold, design_t(750))
+
+
+def test_hint_list_non_monotonic_result_raises(micro_masters):
+    # A blue-zone ordering violation after extrapolation must fail the build.
+    light, bold = micro_masters
+    light.info.postscriptBlueValues = [0, 100, 200, 300]
+    bold.info.postscriptBlueValues = [0, 100, 500, 300]  # 500 > 300: overlap
+    with pytest.raises(IncompatibleMastersError, match="strictly increasing"):
+        extrapolate_font(light, bold, design_t(750))
+
+
 def test_extrapolated_font_skips_absent_cff_hint_lists(micro_masters):
     # Masters without blue zones must not crash and leave the field unset.
     light, bold = micro_masters

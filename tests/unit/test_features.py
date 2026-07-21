@@ -1,5 +1,6 @@
 import io
 
+import pytest
 import ufoLib2
 from fontTools.feaLib.parser import Parser
 
@@ -148,14 +149,37 @@ def test_spacing_overlay_is_unmarked_and_respaced():
     assert font["commaaccent"].width == 0
 
 
-def test_spacing_overlay_without_original_width_keeps_advance():
-    # The width-restore branch is guarded: a spacing override glyph lacking the
-    # originalWidth key is still un-marked but its advance is left untouched.
+def test_spacing_overlay_without_original_width_is_hard_error():
+    # A spacing override that lost its originalWidth cannot be re-spaced; the
+    # build must fail loudly rather than ship a collapsed zero-advance glyph.
+    from fira_code_chunky.qa import QAError
+
     font = _spacing_overlay_ufo()
     del font["strokeshortoverlay"].lib[_ORIGINAL_WIDTH_KEY]
     font["strokeshortoverlay"].width = 0
 
-    categories = ensure_opentype_categories(font)
+    with pytest.raises(QAError, match="originalWidth"):
+        ensure_opentype_categories(font)
 
-    assert "strokeshortoverlay" not in categories
-    assert font["strokeshortoverlay"].width == 0
+
+def test_spacing_overlay_with_zero_original_width_is_hard_error():
+    from fira_code_chunky.qa import QAError
+
+    font = _spacing_overlay_ufo()
+    font["strokeshortoverlay"].lib[_ORIGINAL_WIDTH_KEY] = 0
+
+    with pytest.raises(QAError, match="originalWidth"):
+        ensure_opentype_categories(font)
+
+
+def test_spacing_overrides_are_a_frozen_allowlist():
+    # Exactly three glyphs are spacing in official Fira Code 6.002; the other 19
+    # width-0/originalWidth-1200 glyphs are genuine marks. Freeze the set so a
+    # careless generalization on originalWidth cannot creep in.
+    from fira_code_chunky.features import _SPACING_OVERRIDES
+
+    assert _SPACING_OVERRIDES == (
+        "strokeshortoverlay",
+        "strokelongoverlay",
+        "commaaccent.case",
+    )

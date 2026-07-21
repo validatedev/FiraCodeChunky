@@ -14,6 +14,11 @@ FS_BOLD, FS_REGULAR = 1 << 5, 1 << 6
 FS_USE_TYPO_METRICS = 1 << 7
 MAC_BOLD = 1
 
+# Family-constant PANOSE (monospace Latin text): every static, including the
+# synthetic Bold, must carry it. panose[1]=2 (Latin Text) and panose[4]=9
+# (Monospaced) are what Google Fonts checks for monospace fonts.
+PANOSE = (2, 11, 8, 9, 5, 0, 0, 2, 0, 4)
+
 
 def pin_weight_class(font: TTFont, value: int) -> None:
     cast(Any, font["OS/2"]).usWeightClass = value
