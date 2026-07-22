@@ -1,8 +1,8 @@
 # Fira Code Chunky
 
-FiraCode, but every weight is one notch chunkier. Standard weight metadata
+Fira Code, but every weight is one notch chunkier. Standard weight metadata
 (300-700) backed by outlines 50 design-units heavier, so apps that select
-"Regular 400" get upstream FiraCode's Retina (450) design.
+"Regular 400" get upstream Fira Code's Retina (450) design.
 
 ## Comparison
 
@@ -19,7 +19,7 @@ FiraCode, but every weight is one notch chunkier. Standard weight metadata
 ## Build
 
     uv sync
-    ./scripts/fetch.sh          # FiraCode @ 6.2, hash-pinned
+    ./scripts/fetch.sh          # Fira Code @ 6.2, hash-pinned
     uv run chunky-build         # dist/ gets ttf, otf, woff2, variable
 
 ## Nerd Font variants
