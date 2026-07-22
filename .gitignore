@@ -4,6 +4,7 @@ docs/superpowers/
 
 build/
 dist/
+release/
 .venv/
 __pycache__/
 .pytest_cache/
