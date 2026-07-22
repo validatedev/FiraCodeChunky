@@ -222,7 +222,9 @@ def read_release_version(project_file: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("version", help="release version, for example 6.2")
+    parser.add_argument(
+        "version", nargs="?", help="optional release version, for example 6.2"
+    )
     args = parser.parse_args()
 
     try:
@@ -230,7 +232,7 @@ def main() -> int:
     except (KeyError, OSError, TypeError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1
-    if args.version != project_version:
+    if args.version is not None and args.version != project_version:
         print(
             f"version mismatch: CLI={args.version!r}, project={project_version!r}",
             file=sys.stderr,

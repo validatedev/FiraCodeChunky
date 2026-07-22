@@ -310,6 +310,21 @@ def test_read_release_version_converts_project_semver(tmp_path: Path) -> None:
     assert package_release.read_release_version(project) == "6.2"
 
 
+def test_main_derives_release_version_when_cli_version_is_omitted(
+    fake_dist: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "6.2.0"\n')
+    monkeypatch.setattr(package_release, "ROOT", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["package_release.py"])
+
+    assert package_release.main() == 0
+    assert {path.name for path in (tmp_path / "release").iterdir()} == {
+        "Fira_Code_Chunky_v6.2.zip",
+        "Fira_Code_Chunky_Nerd_Fonts_v6.2.zip",
+        "SHA256SUMS",
+    }
+
+
 def test_main_rejects_cli_version_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
