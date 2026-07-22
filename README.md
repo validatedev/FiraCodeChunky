@@ -95,3 +95,10 @@ If a stale build seems installed, run `sudo atsutil databases -remove` and re-lo
 Derived from [Fira Code](https://github.com/tonsky/FiraCode) by Nikita
 Prokopov (tonsky) et al. SIL Open Font License 1.1, see LICENSE. Not
 affiliated with or endorsed by upstream.
+
+A Chunky Duck
+---
+
+<p align="center">
+  <img src="media/chunky-duck.jpg" alt="A Chunky Duck" width="320">
+</p>
