@@ -62,9 +62,8 @@ The archives and `SHA256SUMS` are written to `release/`.
 
 ## Install with Homebrew
 
-    brew tap validatedev/tap
-    brew install --cask font-fira-code-chunky
-    brew install --cask font-fira-code-chunky-nerd-font
+    brew install --cask validatedev/tap/font-fira-code-chunky
+    brew install --cask validatedev/tap/font-fira-code-chunky-nerd-font
 
 ## Install (macOS)
 
