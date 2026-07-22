@@ -132,6 +132,34 @@ def test_package_release_rejects_an_unexpected_font(
         package_release.package_release(fake_dist, tmp_path / "release", "6.2")
 
 
+def test_package_release_submits_every_font_for_metadata_validation(
+    fake_dist: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    validated = []
+    monkeypatch.setattr(
+        package_release,
+        "validate_font",
+        lambda path, **kwargs: validated.append(path.relative_to(fake_dist).as_posix()),
+    )
+
+    package_release.package_release(fake_dist, tmp_path / "release", "6.2")
+
+    expected_stock = {
+        *(f"ttf/FiraCodeChunky-{style}.ttf" for style in STYLES),
+        *(f"otf/FiraCodeChunky-{style}.otf" for style in STYLES),
+        *(f"woff2/FiraCodeChunky-{style}.woff2" for style in STYLES),
+        "woff2/FiraCodeChunky-VF.woff2",
+        "variable/FiraCodeChunky-VF.ttf",
+    }
+    expected_nerd = {
+        f"nerd/FiraCodeChunkyNerdFont{variant}-{style}.ttf"
+        for variant in ("", "Mono", "Propo")
+        for style in STYLES
+    }
+    assert len(validated) == 32
+    assert set(validated) == expected_stock | expected_nerd
+
+
 def _write_test_font(
     source: Path,
     destination: Path,
@@ -232,6 +260,46 @@ def test_validate_font_rejects_incorrect_metadata(
             style="Regular",
             weight=400,
             versions=("Version 6.002",),
+        )
+
+
+@pytest.mark.parametrize(
+    ("version", "required_versions"),
+    [
+        ("Version 6.0021", ("Version 6.002",)),
+        (
+            "Version 6.0021;Nerd Fonts 3.4.0",
+            ("Version 6.002", "Nerd Fonts 3.4.0"),
+        ),
+        (
+            "Version 6.002;Nerd Fonts 3.4.01",
+            ("Version 6.002", "Nerd Fonts 3.4.0"),
+        ),
+    ],
+)
+def test_validate_font_rejects_version_substring_matches(
+    micro_ttf_path: Path,
+    tmp_path: Path,
+    version: str,
+    required_versions: tuple[str, ...],
+) -> None:
+    path = tmp_path / "FiraCodeChunky-Regular.ttf"
+    _write_test_font(
+        micro_ttf_path,
+        path,
+        family="Fira Code Chunky",
+        style="Regular",
+        weight=400,
+        version=version,
+    )
+
+    with pytest.raises(ValueError, match="version"):
+        package_release.validate_font(
+            path,
+            family="Fira Code Chunky",
+            style="Regular",
+            weight=400,
+            versions=required_versions,
         )
 
 

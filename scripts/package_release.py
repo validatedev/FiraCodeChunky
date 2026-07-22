@@ -59,6 +59,13 @@ def _name_records(font: TTFont, name_id: int) -> list[str]:
     return values
 
 
+def _version_record_matches(record: str, versions: tuple[str, ...]) -> bool:
+    if versions == (STOCK_VERSION,):
+        return record == STOCK_VERSION
+    components = {component.strip() for component in record.split(";")}
+    return all(version in components for version in versions)
+
+
 def validate_font(
     path: Path,
     *,
@@ -85,8 +92,8 @@ def validate_font(
                 raise ValueError(f"{path}: weight={actual_weight}, expected {weight}")
 
         version_records = _name_records(font, 5)
-        if not any(
-            all(version in record for version in versions) for record in version_records
+        if not version_records or not all(
+            _version_record_matches(record, versions) for record in version_records
         ):
             raise ValueError(
                 f"{path}: version records={version_records!r}, expected {versions!r}"
@@ -96,46 +103,31 @@ def validate_font(
 
 
 def _validate_manifest(dist_dir: Path) -> None:
-    static_names = {f"FiraCodeChunky-{style}" for style in STYLES}
-    require_exact_files(
-        dist_dir / "ttf", {f"{name}.ttf" for name in static_names}, ".ttf"
-    )
-    require_exact_files(
-        dist_dir / "otf", {f"{name}.otf" for name in static_names}, ".otf"
-    )
-    require_exact_files(
-        dist_dir / "woff2",
-        {*(f"{name}.woff2" for name in static_names), "FiraCodeChunky-VF.woff2"},
-        ".woff2",
-    )
-    require_exact_files(dist_dir / "variable", {"FiraCodeChunky-VF.ttf"}, ".ttf")
+    for directory, suffix in (
+        ("ttf", ".ttf"),
+        ("otf", ".otf"),
+        ("woff2", ".woff2"),
+        ("variable", ".ttf"),
+    ):
+        expected = {
+            Path(relative_path).name
+            for relative_path in STOCK_RELATIVE_PATHS
+            if Path(relative_path).parts[0] == directory
+        }
+        require_exact_files(dist_dir / directory, expected, suffix)
     require_exact_files(dist_dir / "nerd", set(NERD_FILENAMES), ".ttf")
 
 
 def _validate_metadata(dist_dir: Path) -> None:
-    for style in STYLES:
-        for directory, suffix in (
-            ("ttf", ".ttf"),
-            ("otf", ".otf"),
-            ("woff2", ".woff2"),
-        ):
-            validate_font(
-                dist_dir / directory / f"FiraCodeChunky-{style}{suffix}",
-                family=STOCK_FAMILY,
-                style=style,
-                weight=WEIGHTS[style],
-                versions=(STOCK_VERSION,),
-            )
-
-    for path in (
-        dist_dir / "woff2" / "FiraCodeChunky-VF.woff2",
-        dist_dir / "variable" / "FiraCodeChunky-VF.ttf",
-    ):
+    for relative_path in STOCK_RELATIVE_PATHS:
+        path = dist_dir / relative_path
+        is_variable = path.stem == "FiraCodeChunky-VF"
+        style = None if is_variable else path.stem.removeprefix("FiraCodeChunky-")
         validate_font(
             path,
             family=STOCK_FAMILY,
-            style=None,
-            weight=None,
+            style=style,
+            weight=None if style is None else WEIGHTS[style],
             versions=(STOCK_VERSION,),
         )
 
