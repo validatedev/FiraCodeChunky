@@ -43,13 +43,28 @@ Weight metadata (300-700) is preserved in all three variants. Variable font
 is **not** patched. font-patcher emits a CRITICAL warning for VFs and the
 result is not a reliable VF.
 
-Integration checks run with `uv run pytest -m integration tests/integration/test_nerd.py`.
+Integration checks run with `uv run pytest --no-cov -m integration tests/integration/test_nerd.py`.
 Skip behavior works as follows. The whole module is skipped only when `dist/nerd` has no
 `.ttf` files at all. Individual parametrized (variant, style) rows skip when
 that specific `dist/nerd` output is absent. But once any output exists, the
 completeness test (checking all 15 files and their PostScript names) hard
 **fails** if the full set isn't present. A partial `dist/nerd` counts as a
 build defect and fails the test.
+
+## Package a release
+
+After building the stock and Nerd Font outputs, create deterministic release
+archives and their checksums:
+
+    uv run python scripts/package_release.py
+
+The archives and `SHA256SUMS` are written to `release/`.
+
+## Install with Homebrew
+
+    brew tap validatedev/tap
+    brew install --cask font-fira-code-chunky
+    brew install --cask font-fira-code-chunky-nerd-font
 
 ## Install (macOS)
 

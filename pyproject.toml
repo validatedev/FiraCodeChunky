@@ -1,6 +1,6 @@
 [project]
 name = "fira-code-chunky"
-version = "0.1.0"
+version = "6.2.0"
 description = "FiraCode derivative: standard weight metadata, +50 design (Regular = Retina)"
 requires-python = ">=3.12"
 license = "OFL-1.1"
