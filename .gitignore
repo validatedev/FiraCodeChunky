@@ -1,5 +1,6 @@
 docs/superpowers/
 .superpowers/
+.worktrees/
 
 build/
 dist/
