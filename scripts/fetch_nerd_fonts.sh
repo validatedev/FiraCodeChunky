@@ -3,8 +3,8 @@
 #
 # Pins release tag v3.4.0 of https://github.com/ryanoasis/nerd-fonts via the
 # official FontPatcher.zip asset (font-patcher + src/glyphs/ + name_parser +
-# glyphnames.json). The full nerd-fonts repo is multi-GB of pre-patched fonts;
-# the zip is the supported patcher distribution (~3 MB).
+# glyphnames.json). The full nerd-fonts repo is multi-GB of pre-patched fonts.
+# The zip is the supported patcher distribution (~3 MB).
 #
 # Usage:
 #   ./scripts/fetch_nerd_fonts.sh
@@ -29,7 +29,7 @@ URL="https://github.com/ryanoasis/nerd-fonts/releases/download/${TAG}/FontPatche
 ZIP="${TMPDIR:-/tmp}/FontPatcher-${TAG}.zip"
 
 if [ -f "$DIR/font-patcher" ]; then
-  # Already present; still verify the pinned version string.
+  # Already present, still verify the pinned version string.
   FOUND=$(grep -E '^# Nerd Fonts Version:' "$DIR/font-patcher" | head -1 | awk '{print $NF}')
   if [ "$FOUND" != "$EXPECTED_VERSION" ]; then
     echo "ERROR: existing $DIR/font-patcher is version $FOUND, expected $EXPECTED_VERSION" >&2

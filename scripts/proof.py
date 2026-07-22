@@ -66,7 +66,7 @@ def main() -> int:
         subprocess.run([convert, *map(str, tiles), "-append", str(PROOF)], check=True)
         print(f"wrote {PROOF} ({len(tiles)} tiles)")
     else:
-        # Fall back: keep the Regular 14px tile as the proof representative.
+        # Fall back by keeping the Regular 14px tile as the proof representative.
         rep = OUT_DIR / "proof-Regular-14.png"
         shutil.copy(rep, PROOF)
         print(f"wrote {PROOF} (single tile; install ImageMagick for full montage)")

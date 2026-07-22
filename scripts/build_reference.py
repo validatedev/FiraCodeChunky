@@ -7,12 +7,12 @@ compares against a locally-built reference. This script reproduces it:
 
 1. Convert ``build/upstream/FiraCode.glyphs`` to master UFOs + a designspace
    via glyphs2ufo (the same ``commands.glyphs2ufo_command`` the real
-   ``chunky-build`` pipeline uses in ``pipeline.convert_upstream``) -- into
-   ``build/reference/masters``, deliberately separate from
+   ``chunky-build`` pipeline uses in ``pipeline.convert_upstream``), and write
+   them into ``build/reference/masters``. This directory is deliberately separate from
    ``build/master_ufo`` (which the real pipeline patches in place) so the
    reference stays byte-for-byte upstream, un-"chunky"-fied.
 2. Apply ``features.sanitize_features`` to each master's ``features.fea`` on
-   disk -- same fix as ``pipeline.prepare_designspace`` applies in memory
+   disk. This is the same fix ``pipeline.prepare_designspace`` applies in memory
    before compiling, but written back to disk here because fontmake is
    invoked as a subprocess (see below) and reads the UFO from disk rather
    than an in-memory ufoLib2 object.
@@ -24,9 +24,9 @@ Usage:
 
 This intentionally shells out with ``subprocess`` directly (as
 ``scripts/proof.py`` does) rather than going through
-``fira_code_chunky.runner.Runner``: ``scripts/`` sits outside the
+``fira_code_chunky.runner.Runner``. ``scripts/`` sits outside the
 Runner-protocol core (which exists so ``pipeline.py`` can be tested with a
-fake runner) -- one-off scripts have no test double to satisfy and running
+fake runner). One-off scripts have no test double to satisfy and running
 real subprocesses directly is the simpler, honest choice here.
 """
 
@@ -69,7 +69,7 @@ def compile_variable() -> None:
         commands.fontmake_variable_command(DESIGNSPACE, OUT_DIR),
         check=True,
     )
-    # fontmake names the VF after the designspace's family name; normalize.
+    # fontmake names the VF after the designspace's family name, normalize.
     produced = [path for path in OUT_DIR.glob("*.ttf") if path != VF_OUT]
     if produced:
         produced[0].replace(VF_OUT)

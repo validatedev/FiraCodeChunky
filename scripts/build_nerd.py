@@ -6,35 +6,35 @@ Requires:
   - ``build/nerd-fonts/font-patcher`` (from ``./scripts/fetch_nerd_fonts.sh``)
   - FontForge with Python bindings on PATH (``fontforge`` CLI)
 
-On macOS, if fontforge is missing: ``brew install fontforge``.
+On macOS, if fontforge is missing, run ``brew install fontforge``.
 
 Usage:
     uv run python scripts/build_nerd.py
 
 Writes, for each of the five static weights, three width variants into
-``dist/nerd/`` — matching what upstream Fira Code ships:
+``dist/nerd/``, matching what upstream Fira Code ships:
 
-  - ``FiraCodeChunkyNerdFont-<Style>.ttf``      (plain: icons overhang the cell)
-  - ``FiraCodeChunkyNerdFontMono-<Style>.ttf``  (--mono: every glyph one cell)
-  - ``FiraCodeChunkyNerdFontPropo-<Style>.ttf`` (--variable-width-glyphs: proportional)
+  - ``FiraCodeChunkyNerdFont-<Style>.ttf``      (plain, icons overhang the cell)
+  - ``FiraCodeChunkyNerdFontMono-<Style>.ttf``  (--mono, every glyph one cell)
+  - ``FiraCodeChunkyNerdFontPropo-<Style>.ttf`` (--variable-width-glyphs, proportional)
 
-Naming: font-patcher with ``--makegroups 1`` derives the family/subfamily from
+Naming. font-patcher with ``--makegroups 1`` derives the family/subfamily from
 the source SFNT names and appends the variant tag, producing families
 ``FiraCodeChunky Nerd Font`` / ``... Mono`` / ``... Propo`` and the filenames
 above. Weight metadata (usWeightClass 300/400/500/600/700) is left intact.
 
-``post.isFixedPitch`` is *emergent*, not set by the patcher: Mono forces every
-advance to one cell (FontForge computes isFixedPitch=1); Propo leaves
+``post.isFixedPitch`` is *emergent*, not set by the patcher. Mono forces every
+advance to one cell (FontForge computes isFixedPitch=1). Propo leaves
 proportional, non-uniform advances (isFixedPitch=0). Plain keeps one-cell
-ADVANCES too — icons overhang only in the outline, not the advance width —
+ADVANCES too. Icons overhang only in the outline, not the advance width,
 so for this clean-monospace source plain is ALSO isFixedPitch=1. Plain is
 distinguished from Mono by icon-outline overhang, not by isFixedPitch.
 (Upstream stock Fira Code's plain shows isFixedPitch=0 only because of one
 non-monospace-width glyph absent from this source.) This is asserted in
 tests/integration/test_nerd.py.
 
-Variable font: intentionally skipped. font-patcher does not cleanly preserve
-VF axes/instances for this family; only the five statics are patched.
+Variable font is intentionally skipped. font-patcher does not cleanly preserve
+VF axes/instances for this family. Only the five statics are patched.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ STYLES = ("Light", "Regular", "Medium", "SemiBold", "Bold")
 COMMON_FLAGS = ("--complete", "--makegroups", "1", "--quiet")
 
 # (id, family, stem_infix, width_flags). stem_infix "" (plain) is intentionally
-# empty; never branch on its truthiness — that silently omits the plain variant.
+# empty. Never branch on its truthiness, doing so silently omits the plain variant.
 VARIANTS = (
     ("plain", "FiraCodeChunky Nerd Font", "", ()),
     ("mono", "FiraCodeChunky Nerd Font Mono", "Mono", ("--mono",)),
@@ -72,7 +72,7 @@ def find_fontforge() -> str | None:
     path = shutil.which("fontforge")
     if path:
         return path
-    # Homebrew python bindings alone are not enough; the CLI runs the script.
+    # Homebrew python bindings alone are not enough, the CLI runs the script.
     return None
 
 
@@ -108,7 +108,7 @@ def patch_one(
     stem_infix: str,
     width_flags: tuple[str, ...],
 ) -> Path:
-    """Run font-patcher on one static TTF for one variant; return its path.
+    """Run font-patcher on one static TTF for one variant, return its path.
 
     Resolves the output by its exact expected name. There is deliberately no
     glob fallback: the plain stem ``FiraCodeChunkyNerdFont-`` is a prefix of the

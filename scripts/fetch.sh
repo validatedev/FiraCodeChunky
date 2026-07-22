@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 TAG="6.2"
-# First run: leave empty, script prints the hash. Then paste it here and rerun to verify.
+# For the first run, leave this empty. The script prints the hash. Then paste it here and rerun to verify.
 EXPECTED_COMMIT="eee6db993696aba61ff4eef03698e2987d79910c"
 DIR="build/upstream"
 
