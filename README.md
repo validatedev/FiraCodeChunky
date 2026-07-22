@@ -4,6 +4,14 @@ FiraCode, but every weight is one notch chunkier. Standard weight metadata
 (300-700) backed by outlines 50 design-units heavier, so apps that select
 "Regular 400" get upstream FiraCode's Retina (450) design.
 
+## Comparison
+
+![Fira Code and Fira Code Chunky comparison](media/fira-code-comparison.gif)
+
+The animation hard-cuts every 1.5 seconds so the change in stroke weight stays
+easy to compare. View the original [Fira Code](media/fira-code.png) and
+[Fira Code Chunky](media/fira-code-chunky.png) screenshots separately.
+
 | Style | Metadata | Renders upstream design |
 |---|---|---|
 | Light | 300 | 350 |
@@ -62,8 +70,23 @@ The archives and `SHA256SUMS` are written to `release/`.
 
 ## Install with Homebrew
 
+| Cask | Fonts |
+|---|---|
+| `font-fira-code-chunky` | Five static TTFs and the variable TTF |
+| `font-fira-code-chunky-nerd-font` | All 15 Plain, Mono, and Propo Nerd Font TTFs |
+
+Install directly with fully qualified cask names. Homebrew automatically taps
+the repository and trusts only the requested cask:
+
     brew install --cask validatedev/tap/font-fira-code-chunky
     brew install --cask validatedev/tap/font-fira-code-chunky-nerd-font
+
+To use short cask names, tap and trust the repository once:
+
+    brew tap validatedev/tap
+    brew trust validatedev/tap
+    brew install --cask font-fira-code-chunky
+    brew install --cask font-fira-code-chunky-nerd-font
 
 ## Install (macOS)
 
