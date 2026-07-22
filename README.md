@@ -8,10 +8,6 @@ FiraCode, but every weight is one notch chunkier. Standard weight metadata
 
 ![Fira Code and Fira Code Chunky comparison](media/fira-code-comparison.gif)
 
-The animation hard-cuts every 1.5 seconds so the change in stroke weight stays
-easy to compare. View the original [Fira Code](media/fira-code.png) and
-[Fira Code Chunky](media/fira-code-chunky.png) screenshots separately.
-
 | Style | Metadata | Renders upstream design |
 |---|---|---|
 | Light | 300 | 350 |
